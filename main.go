@@ -2,11 +2,16 @@ package main
 
 import (
 	"net/http"
-
+	_ "github.com/lib/pq"
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
+var (
+
+)
+
+func setupServer() *gin.Engine {
+
 	r := gin.Default()
 
 	r.GET("/ping", func(c *gin.Context) {
@@ -16,5 +21,11 @@ func main() {
 		})
 	})
 
-	r.Run()
+	return r
+}
+
+func main() {
+	r := setupServer()
+
+	r.Run("localhost:8080")
 }
