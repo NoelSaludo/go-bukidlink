@@ -36,6 +36,7 @@ func setupServer() *gin.Engine {
 		})
 	})
 
+	r.GET("/user/:username", getUserHandler)
 	r.POST("/postuser", postUserHandler)
 
 	return r
@@ -59,9 +60,9 @@ func setupDatabase() *sql.DB {
 
 func postUserHandler(c *gin.Context) {
 	var data User
-	err:= c.ShouldBindJSON(&data)
+	err := c.ShouldBindJSON(&data)
 	if err != nil {
-		c.JSON( http.StatusBadRequest, gin.H{ "error": err.Error(),})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -70,6 +71,25 @@ func postUserHandler(c *gin.Context) {
 		"password": data.Password,
 		"username": data.Username,
 	})
+}
+
+func getUserHandler(c *gin.Context) {
+	// TODO: delete later
+	mockdb := []User{
+		{Id: 1, Username: "JohnDoe", Password: "password123"},
+		{Id: 2, Username: "DanielGaliego", Password: "passing"},
+	}
+
+	usernameP := c.Param("username")
+
+	for _, user := range mockdb {
+		if user.Username == usernameP {
+			c.JSON(http.StatusOK, user)
+			return
+		}
+	}
+
+	c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 }
 
 func main() {
