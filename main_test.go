@@ -19,6 +19,8 @@ func TestPingRoute(t *testing.T) {
 }
 
 func TestDatabaseConnection(t *testing.T) {
+	db := setupDatabase()
 
+	assert.Equal(t, nil, db.Ping())
 }
 

@@ -1,13 +1,22 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
+	"log"
 	"net/http"
-	_ "github.com/lib/pq"
+	"os"
+
 	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
 var (
-
+	HOST     string = os.Getenv("DBHOST")
+	PORT     string    = os.Getenv("DBPORT")
+	USER     string = os.Getenv("DBUSER")
+	PASSWORD string = os.Getenv("DBPASSWORD")
+	DATABASE string = os.Getenv("DATABASE")
 )
 
 func setupServer() *gin.Engine {
@@ -22,6 +31,24 @@ func setupServer() *gin.Engine {
 	})
 
 	return r
+}
+
+func setupDatabase() *sql.DB {
+	connStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		HOST,
+		PORT,
+		USER,
+		PASSWORD,
+		DATABASE,
+	)
+
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return db
 }
 
 func main() {
