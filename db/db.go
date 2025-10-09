@@ -5,13 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	_ "github.com/lib/pq"
 )
-
-type User struct {
-	Id       int    `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
 
 var (
 	HOST     string = os.Getenv("DBHOST")

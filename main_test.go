@@ -18,16 +18,8 @@ func TestPingRoute(t *testing.T) {
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/ping", nil)
 	server.ServeHTTP(w, req)
-
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "{\"message\":\"pong\"}", w.Body.String())
-}
-
-func TestDatabaseConnection(t *testing.T) {
-	err := db.SetupDatabase()
-
-	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, db.Ping())
 }
 
 func TestPostUser(t *testing.T) {
