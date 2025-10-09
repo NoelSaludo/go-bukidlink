@@ -3,9 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/lib/pq"
 	"log"
 	"os"
-	_ "github.com/lib/pq"
 )
 
 var (
@@ -19,6 +19,8 @@ var (
 var db *sql.DB
 
 func SetupDatabase() error {
+	var err error
+
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		HOST,
@@ -28,11 +30,8 @@ func SetupDatabase() error {
 		DATABASE,
 	)
 
-	var err error
 	db, err = sql.Open("postgres", connStr)
-	if err != nil {
-		return err
-	}
+	checkErr(err)
 
 	return nil
 }
@@ -46,9 +45,7 @@ func QueryUsers(username string) []User {
 	query := `SELECT * FROM "User" WHERE username=$1`
 
 	rows, err := db.Query(query, username)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkErr(err)
 
 	for rows.Next() {
 		var id int
@@ -68,4 +65,29 @@ func QueryUsers(username string) []User {
 	}
 
 	return temp
+}
+
+func InsertUser(user User) int64 {
+	query := `INSERT INTO "User" (username, password) VALUES ($1, $2) RETURNING id`
+	var id int64
+
+	err := db.QueryRow(query, user.Username, user.Password).Scan(&id)
+
+	checkErr(err)
+
+	return id
+}
+
+func DeleteUser(id int64) {
+	query := `DELETE FROM "User" WHERE id=$1`
+
+	_, err := db.Exec(query, id)
+
+	checkErr(err)
+}
+
+func checkErr(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }

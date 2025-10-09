@@ -19,7 +19,7 @@ func TestQueryUsers(t *testing.T) {
 
 	expectedUsers := []User {
 		{
-			Id: 1,
+			Id: 2,
 			Username: "JohnDoe",
 			Password: "P@ssw0rd",
 		},
@@ -27,4 +27,16 @@ func TestQueryUsers(t *testing.T) {
 
 	resultUsers := QueryUsers("JohnDoe")
 	assert.ElementsMatch(t, expectedUsers, resultUsers)
+}
+
+func TestInsertAndDelete(t *testing.T) {
+	_ = SetupDatabase()
+
+	testUser := User {
+		Username: "DanielGalliego",
+		Password: "VeryC00lP@ss",
+	}
+
+	generatedId := InsertUser(testUser)
+	DeleteUser(generatedId)
 }
