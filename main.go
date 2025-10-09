@@ -23,6 +23,8 @@ func setupServer() *gin.Engine {
 	r.GET("/user/:username", getUserHandler)
 	r.POST("/postuser", postUserHandler)
 
+	db.SetupDatabase()
+
 	return r
 }
 
@@ -42,10 +44,11 @@ func postUserHandler(c *gin.Context) {
 }
 
 func getUserHandler(c *gin.Context) {
-	// TODO: delete later
 	temp := []db.User{ }
 
 	usernameP := c.Param("username")
+
+	temp = db.QueryUsers(usernameP);
 
 	for _, user := range temp {
 		if user.Username == usernameP {

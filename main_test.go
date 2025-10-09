@@ -62,7 +62,7 @@ func TestGetUser(t *testing.T) {
 
 	server.ServeHTTP(w, req)
 
-	result := `{"id":1,"username":"JohnDoe","password":"password123"}`
+	result := `{"id":1,"username":"JohnDoe","password":"P@ssw0rd"}`
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, result, w.Body.String())
 }

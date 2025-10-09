@@ -2,10 +2,10 @@ package db
 
 import (
 	"database/sql"
-	"os"
 	"fmt"
+	"log"
+	"os"
 )
-
 
 type User struct {
 	Id       int    `json:"id"`
@@ -46,6 +46,31 @@ func Ping() error {
 	return db.Ping()
 }
 
-func QueryUser(username string) {
+func QueryUsers(username string) []User {
+	var temp []User
+	query := `SELECT * FROM "User" WHERE username=$1`
 
+	rows, err := db.Query(query, username)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for rows.Next() {
+		var id int
+		var username string
+		var password string
+		err := rows.Scan(&id, &username, &password)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		temp = append(temp, User{
+			Id:       id,
+			Username: username,
+			Password: password,
+		})
+	}
+
+	return temp
 }
