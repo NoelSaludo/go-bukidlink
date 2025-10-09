@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"bukidlink/db"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,15 +24,16 @@ func TestPingRoute(t *testing.T) {
 }
 
 func TestDatabaseConnection(t *testing.T) {
-	db := setupDatabase()
+	err := db.SetupDatabase()
 
+	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, db.Ping())
 }
 
 func TestPostUser(t *testing.T) {
 	server := setupServer()
 
-	data := User{
+	data := db.User{
 		Id:       1,
 		Username: "JohnDoe",
 		Password: "password123",

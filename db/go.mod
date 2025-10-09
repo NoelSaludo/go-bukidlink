@@ -1,0 +1,3 @@
+module bukidlink/db
+
+go 1.24.8
