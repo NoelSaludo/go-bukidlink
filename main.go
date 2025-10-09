@@ -6,7 +6,6 @@ import (
 	"bukidlink/db"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
 )
 
 func setupServer() *gin.Engine {
@@ -36,11 +35,7 @@ func postUserHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"id":       data.Id,
-		"password": data.Password,
-		"username": data.Username,
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Success"})
 }
 
 func getUserHandler(c *gin.Context) {

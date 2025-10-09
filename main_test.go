@@ -40,9 +40,7 @@ func TestPostUser(t *testing.T) {
 	server.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t,
-		`{"id":1,"password":"password123","username":"JohnDoe"}`,
-		w.Body.String())
+	assert.Equal(t,`{"message":"Success"}`, w.Body.String())
 
 }
 
@@ -54,7 +52,7 @@ func TestGetUser(t *testing.T) {
 
 	server.ServeHTTP(w, req)
 
-	result := `{"id":1,"username":"JohnDoe","password":"P@ssw0rd"}`
+	result := `{"id":2,"username":"JohnDoe","password":"P@ssw0rd"}`
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, result, w.Body.String())
 }
