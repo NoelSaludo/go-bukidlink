@@ -74,10 +74,18 @@ func QueryUsers(username string) ([]User,error) {
 }
 
 func InsertUser(user User) (int64, error) {
-	query := `INSERT INTO "User" (username, password, email) VALUES ($1, $2, $3) RETURNING id`
+	query := `
+	INSERT INTO "User" (
+	username, password, email)
+	VALUES ($1, $2, $3) 
+	RETURNING id`
 	var id int64
 
-	err := db.QueryRow(query, user.Username, user.Password, user.Email).Scan(&id)
+	err := db.QueryRow(query,
+		user.Username,
+		user.Password,
+		user.Email).Scan(&id)
+
 	if err != nil {
 		return 0, err
 	}
