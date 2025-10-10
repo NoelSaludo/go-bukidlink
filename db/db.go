@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -32,7 +31,9 @@ func SetupDatabase() error {
 	)
 
 	db, err = sql.Open("postgres", connStr)
-	checkErr(err)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -41,12 +42,14 @@ func Ping() error {
 	return db.Ping()
 }
 
-func QueryUsers(username string) []User {
+func QueryUsers(username string) ([]User,error) {
 	var temp []User
 	query := `SELECT * FROM "User" WHERE username=$1`
 
 	rows, err := db.Query(query, username)
-	checkErr(err)
+	if err != nil {
+		return temp, err
+	}
 
 	for rows.Next() {
 		var id int
@@ -56,7 +59,7 @@ func QueryUsers(username string) []User {
 		err := rows.Scan(&id, &username, &password, &email)
 
 		if err != nil {
-			log.Fatal(err)
+			return temp, err
 		}
 
 		temp = append(temp, User{
@@ -67,7 +70,7 @@ func QueryUsers(username string) []User {
 		})
 	}
 
-	return temp
+	return temp, err
 }
 
 func InsertUser(user User) (int64, error) {
@@ -75,6 +78,9 @@ func InsertUser(user User) (int64, error) {
 	var id int64
 
 	err := db.QueryRow(query, user.Username, user.Password, user.Email).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
 
 	return id, err
 }
@@ -83,14 +89,11 @@ func DeleteUser(id int64) error {
 	query := `DELETE FROM "User" WHERE id=$1`
 
 	_, err := db.Exec(query, id)
-
-	return err
-}
-
-func checkErr(err error) {
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 func QueryItemByID(id int) (Item, error) {

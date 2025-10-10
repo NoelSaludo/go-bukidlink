@@ -26,7 +26,8 @@ func TestQueryUsers(t *testing.T) {
 		},
 	}
 
-	resultUsers := QueryUsers("JohnDoe")
+	resultUsers, err := QueryUsers("JohnDoe")
+	assert.Equal(t, nil, err)
 	assert.ElementsMatch(t, expectedUsers, resultUsers)
 }
 
@@ -91,4 +92,4 @@ func TestGetAllItems(t *testing.T) {
 
 	assert.Equal(t, nil, err)
 	assert.ElementsMatch(t, expectedItems, items)
-}
+}	
