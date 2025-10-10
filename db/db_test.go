@@ -44,3 +44,20 @@ func TestInsertAndDelete(t *testing.T) {
 	err = DeleteUser(generatedId)
 	assert.Equal(t, nil, err)
 }
+
+func TestGetItem(t *testing.T) {
+	_ = SetupDatabase()
+
+	expectedItem := Item{
+		Id: 1,
+		Name: "Carrot",
+		Description: "A long, orange, and beautiful Carrot",
+		Amount: 10,
+	}
+
+	var item Item
+	item, err := QueryItemByID(1)
+
+	assert.Equal(t, nil, err)
+	assert.Equal(t, expectedItem, item)
+}

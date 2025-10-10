@@ -91,3 +91,30 @@ func checkErr(err error) {
 		log.Fatal(err)
 	}
 }
+
+func QueryItemByID(id int) (Item, error) {
+
+	query := `SELECT * FROM "Item" WHERE id=$1`
+
+	row := db.QueryRow(query, id)
+
+	var itemId int
+	var name string
+	var description string
+	var amount int
+
+	err := row.Scan(&itemId, &name, &description, &amount)
+
+	if err != nil {
+		return Item{}, err
+	}
+
+	resItem := Item{
+		Id:          itemId,
+		Name:        name,
+		Description: description,
+		Amount:      amount,
+	}
+
+	return resItem, err
+}
