@@ -61,3 +61,34 @@ func TestGetItem(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, expectedItem, item)
 }
+
+func TestGetAllItems(t *testing.T) {
+	_ = SetupDatabase()
+
+	expectedItems := []Item{
+		{
+			Id: 1,
+			Name: "Carrot",
+			Description: "A long, orange, and beautiful Carrot",
+			Amount: 10,
+		},
+		{
+			Id: 2,
+			Name: "Potato",
+			Description: "A round, brown, and delicious Potato",
+			Amount: 20,
+		},
+		{
+			Id: 3,
+			Name: "Tomato",
+			Description: "A red, round, and juicy Tomato",
+			Amount: 30,
+		},
+	}
+
+	var items []Item
+	items, err := QueryAllItem100(0)
+
+	assert.Equal(t, nil, err)
+	assert.ElementsMatch(t, expectedItems, items)
+}

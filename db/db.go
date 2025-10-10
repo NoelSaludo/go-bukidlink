@@ -3,9 +3,10 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/lib/pq"
 	"log"
 	"os"
+
+	_ "github.com/lib/pq"
 )
 
 var (
@@ -117,4 +118,35 @@ func QueryItemByID(id int) (Item, error) {
 	}
 
 	return resItem, err
+}
+
+func QueryAllItem100(block int) ([]Item, error) {
+	var item []Item
+	// select 100 items with offset
+	query := `SELECT * FROM "Item" LIMIT 100 OFFSET $1`
+	rows, err := db.Query(query, block*100)
+	if err != nil {
+		return item, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var itemId int
+		var name string
+		var description string
+		var amount int
+		err := rows.Scan(&itemId, &name, &description, &amount)
+		if err != nil {
+			return item, err
+		}
+		item = append(item, Item{
+			Id:          itemId,
+			Name:        name,
+			Description: description,
+			Amount:      amount,
+		})
+	}
+
+	return item, err
 }
