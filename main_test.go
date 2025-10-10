@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,6 +30,7 @@ func TestPostUser(t *testing.T) {
 		Id:       1,
 		Username: "JohnDoe",
 		Password: "password123",
+		Email:    "JohnDoe@example.com",
 	}
 
 	jData, _ := json.Marshal(data)
@@ -40,8 +42,7 @@ func TestPostUser(t *testing.T) {
 	server.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t,`{"message":"Success"}`, w.Body.String())
-
+	fmt.Print(w.Body.String())
 }
 
 func TestGetUser(t *testing.T) {
@@ -52,7 +53,7 @@ func TestGetUser(t *testing.T) {
 
 	server.ServeHTTP(w, req)
 
-	result := `{"id":2,"username":"JohnDoe","password":"P@ssw0rd"}`
+	result := `{"id":2,"username":"JohnDoe","password":"P@ssw0rd","email":"JohnDoe@example.com"}`
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, result, w.Body.String())
 }

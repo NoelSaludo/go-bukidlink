@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bukidlink/db"
 	"log"
 	"net/http"
-	"bukidlink/db"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,16 +34,23 @@ func postUserHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	var id int64
+	id, err = db.InsertUser(data)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Success"})
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Success", "created_id": id})
 }
 
 func getUserHandler(c *gin.Context) {
-	temp := []db.User{ }
+	temp := []db.User{}
 
 	usernameP := c.Param("username")
 
-	temp = db.QueryUsers(usernameP);
+	temp = db.QueryUsers(usernameP)
 
 	for _, user := range temp {
 		if user.Username == usernameP {

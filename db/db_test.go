@@ -22,6 +22,7 @@ func TestQueryUsers(t *testing.T) {
 			Id: 2,
 			Username: "JohnDoe",
 			Password: "P@ssw0rd",
+			Email: "JohnDoe@example.com",
 		},
 	}
 
@@ -35,6 +36,7 @@ func TestInsertAndDelete(t *testing.T) {
 	testUser := User {
 		Username: "DanielGalliego",
 		Password: "VeryC00lP@ss",
+		Email: "DanielGalliego@example.com",
 	}
 
 	generatedId, err := InsertUser(testUser)
