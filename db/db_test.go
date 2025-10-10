@@ -37,6 +37,8 @@ func TestInsertAndDelete(t *testing.T) {
 		Password: "VeryC00lP@ss",
 	}
 
-	generatedId := InsertUser(testUser)
-	DeleteUser(generatedId)
+	generatedId, err := InsertUser(testUser)
+	assert.Equal(t, nil, err)
+	err = DeleteUser(generatedId)
+	assert.Equal(t, nil, err)
 }

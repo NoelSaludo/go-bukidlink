@@ -67,23 +67,21 @@ func QueryUsers(username string) []User {
 	return temp
 }
 
-func InsertUser(user User) int64 {
+func InsertUser(user User) (int64, error) {
 	query := `INSERT INTO "User" (username, password) VALUES ($1, $2) RETURNING id`
 	var id int64
 
 	err := db.QueryRow(query, user.Username, user.Password).Scan(&id)
 
-	checkErr(err)
-
-	return id
+	return id, err
 }
 
-func DeleteUser(id int64) {
+func DeleteUser(id int64) error {
 	query := `DELETE FROM "User" WHERE id=$1`
 
 	_, err := db.Exec(query, id)
 
-	checkErr(err)
+	return err
 }
 
 func checkErr(err error) {
