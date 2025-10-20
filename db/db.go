@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -132,16 +133,43 @@ func QueryItemByID(id int) (Item, error) {
 }
 
 func QueryAllItem100(block int) ([]Item, error) {
-	var item []Item
+	var items []Item
 	// select 100 items with offset
 	query := `SELECT * FROM "Item" LIMIT 100 OFFSET $1`
 	rows, err := db.Query(query, block*100)
 	if err != nil {
-		return item, err
+		return items, err
 	}
 
 	defer rows.Close()
 
+	items, err = getItemsFromRow(rows, items)
+	if err != nil {
+		return items, err
+	}
+
+	return items, err
+}
+
+func QueryFruits() ([]Item, error) {
+	var items []Item
+	// TODO: complete the query
+	query := ""
+
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	items, err = getItemsFromRow(rows, items)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return items, nil
+}
+
+func getItemsFromRow(rows *sql.Rows, items []Item) ([]Item, error) {
 	for rows.Next() {
 		var itemId int
 		var name string
@@ -150,15 +178,16 @@ func QueryAllItem100(block int) ([]Item, error) {
 		var costPKG float64
 		err := rows.Scan(&itemId, &name, &description, &amount, &costPKG)
 		if err != nil {
-			return item, err
+			return items, err
 		}
-		item = append(item, Item{
+		items = append(items, Item{
 			Id:          itemId,
 			Name:        name,
 			Description: description,
 			Amount:      amount,
+			CostPKilo:   costPKG,
 		})
 	}
 
-	return item, err
+	return items, nil
 }

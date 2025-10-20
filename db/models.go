@@ -12,5 +12,5 @@ type Item struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Amount      int     `json:"amount"`
-	costPKilo   float64 `json:"costPKilo"`
+	CostPKilo   float64 `json:"costPKilo"`
 }

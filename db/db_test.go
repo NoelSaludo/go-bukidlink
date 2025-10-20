@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 func TestDatabaseConnection(t *testing.T) {
 	err := SetupDatabase()
 
@@ -17,12 +16,12 @@ func TestDatabaseConnection(t *testing.T) {
 func TestQueryUsers(t *testing.T) {
 	_ = SetupDatabase()
 
-	expectedUsers := []User {
+	expectedUsers := []User{
 		{
-			Id: 2,
+			Id:       2,
 			Username: "JohnDoe",
 			Password: "P@ssw0rd",
-			Email: "JohnDoe@example.com",
+			Email:    "JohnDoe@example.com",
 		},
 	}
 
@@ -34,10 +33,10 @@ func TestQueryUsers(t *testing.T) {
 func TestInsertAndDelete(t *testing.T) {
 	_ = SetupDatabase()
 
-	testUser := User {
+	testUser := User{
 		Username: "DanielGalliego",
 		Password: "VeryC00lP@ss",
-		Email: "DanielGalliego@example.com",
+		Email:    "DanielGalliego@example.com",
 	}
 
 	generatedId, err := InsertUser(testUser)
@@ -50,10 +49,10 @@ func TestGetItem(t *testing.T) {
 	_ = SetupDatabase()
 
 	expectedItem := Item{
-		Id: 1,
-		Name: "Carrot",
+		Id:          1,
+		Name:        "Carrot",
 		Description: "A long, orange, and beautiful Carrot",
-		Amount: 10,
+		Amount:      10,
 	}
 
 	var item Item
@@ -68,22 +67,25 @@ func TestGetAllItems(t *testing.T) {
 
 	expectedItems := []Item{
 		{
-			Id: 1,
-			Name: "Carrot",
+			Id:          1,
+			Name:        "Carrot",
 			Description: "A long, orange, and beautiful Carrot",
-			Amount: 10,
+			Amount:      10,
+			CostPKilo:   0,
 		},
 		{
-			Id: 2,
-			Name: "Potato",
+			Id:          2,
+			Name:        "Potato",
 			Description: "A round, brown, and delicious Potato",
-			Amount: 20,
+			Amount:      20,
+			CostPKilo:   0,
 		},
 		{
-			Id: 3,
-			Name: "Tomato",
+			Id:          3,
+			Name:        "Tomato",
 			Description: "A red, round, and juicy Tomato",
-			Amount: 30,
+			Amount:      30,
+			CostPKilo:   0,
 		},
 	}
 
@@ -92,4 +94,4 @@ func TestGetAllItems(t *testing.T) {
 
 	assert.Equal(t, nil, err)
 	assert.ElementsMatch(t, expectedItems, items)
-}	
+}
