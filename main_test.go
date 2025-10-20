@@ -34,7 +34,7 @@ func TestPostUser(t *testing.T) {
 
 	jData, _ := json.Marshal(data)
 
-	req, _ := http.NewRequest(http.MethodPost, "/postuser", bytes.NewBuffer(jData))
+	req, _ := http.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(jData))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()

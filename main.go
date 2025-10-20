@@ -20,10 +20,12 @@ func setupServer() *gin.Engine {
 		})
 	})
 
-	r.GET("/user/:username", getUserHandler)
-	r.GET("/item/:block", get100ItemsHandler)
+	itemGroup := r.Group("/item")
+	itemGroup.GET("/:block", get100ItemsHandler)
 
-	r.POST("/postuser", postUserHandler)
+	userGroup := r.Group("/user")
+	userGroup.GET("/:username", getUserHandler)
+	userGroup.POST("", postUserHandler)
 
 	db.SetupDatabase()
 
@@ -71,8 +73,8 @@ func getUserHandler(c *gin.Context) {
 
 func get100ItemsHandler(c *gin.Context) {
 
-	blockP, err := strconv.Atoi(c.Param("block"))	
-	if err != nil {	
+	blockP, err := strconv.Atoi(c.Param("block"))
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid block parameter"})
 		return
 	}
