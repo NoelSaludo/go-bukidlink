@@ -42,7 +42,7 @@ func Ping() error {
 	return db.Ping()
 }
 
-func QueryUsers(username string) ([]User,error) {
+func QueryUsers(username string) ([]User, error) {
 	var temp []User
 	query := `SELECT * FROM "User" WHERE username=$1`
 
@@ -147,7 +147,8 @@ func QueryAllItem100(block int) ([]Item, error) {
 		var name string
 		var description string
 		var amount int
-		err := rows.Scan(&itemId, &name, &description, &amount)
+		var costPKG float64
+		err := rows.Scan(&itemId, &name, &description, &amount, &costPKG)
 		if err != nil {
 			return item, err
 		}

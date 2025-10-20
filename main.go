@@ -4,7 +4,6 @@ import (
 	"bukidlink/db"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +21,12 @@ func setupServer() *gin.Engine {
 
 	itemGroup := r.Group("/item")
 	itemGroup.GET("/:block", get100ItemsHandler)
+	itemGroup.GET("/fruit", getFruitsHandler)
+	itemGroup.GET("/vegetables")
+	itemGroup.GET("/grains")
+	itemGroup.GET("/livestock")
+	itemGroup.GET("/diary")
+	itemGroup.GET("/other")
 
 	userGroup := r.Group("/user")
 	userGroup.GET("/:username", getUserHandler)
@@ -71,22 +76,6 @@ func getUserHandler(c *gin.Context) {
 	c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 }
 
-func get100ItemsHandler(c *gin.Context) {
-
-	blockP, err := strconv.Atoi(c.Param("block"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid block parameter"})
-		return
-	}
-
-	items, err := db.QueryAllItem100(blockP)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, items)
-}
 func main() {
 	r := setupServer()
 

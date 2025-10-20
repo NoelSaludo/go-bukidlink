@@ -8,8 +8,9 @@ type User struct {
 }
 
 type Item struct {
-	Id          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Amount      int    `json:"amount"`
+	Id          int     `json:"id"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Amount      int     `json:"amount"`
+	costPKG     float64 `json:"costPKG"`
 }
