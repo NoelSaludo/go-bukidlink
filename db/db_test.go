@@ -67,12 +67,37 @@ func TestGetAllItems(t *testing.T) {
 	assert.NotEmpty(t, items)
 }
 
-func TestQueryFruits(t *testing.T) {
+func TestQueryItemsbyCategory(t *testing.T) {
 	_ = SetupDatabase()
 
-	var fruits []Item
-	fruits, err := QueryFruits()
+	var items []Item
+	items, err := QueryItembyCategory("fruits")
 
 	require.NoError(t, err)
-	assert.NotEmpty(t, fruits)
+	assert.NotEmpty(t, items)
+
+	items, err = QueryItembyCategory("vegetables")
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, items)
+
+	items, err = QueryItembyCategory("grains")
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, items)
+
+	items, err = QueryItembyCategory("livestock")
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, items)
+
+	items, err = QueryItembyCategory("dairy")
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, items)
+
+	items, err = QueryItembyCategory("others")
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, items)
 }

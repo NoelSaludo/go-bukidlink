@@ -161,12 +161,15 @@ func QueryAllItem100(block int) ([]Item, error) {
 	return items, err
 }
 
-func QueryFruits() ([]Item, error) {
+// category only accepts certian string
+// accepted string
+// fruits, vegetables, grains, livestock, dairy, others
+func QueryItembyCategory(category string) ([]Item, error) {
 	var items []Item
 	// TODO: complete the query
-	query := "SELECT * FROM public.\"Item\" WHERE category='fruits'"
+	query := "SELECT * FROM public.\"Item\" WHERE category=$1"
 
-	rows, err := db.Query(query)
+	rows, err := db.Query(query, category)
 	if err != nil {
 		log.Fatal(err)
 	}
