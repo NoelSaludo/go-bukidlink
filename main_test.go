@@ -10,6 +10,7 @@ import (
 	"bukidlink/db"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPingRoute(t *testing.T) {
@@ -65,4 +66,31 @@ func Test100Items(t *testing.T) {
 	server.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetItemsByCategory(t *testing.T) {
+	server := setupServer()
+
+	categories := []string{"fruits", "vegetables", "grains", "livestock", "dairy"}
+	for _, cat := range categories {
+		req, _ := http.NewRequest(http.MethodGet, "/item/category/"+cat, nil)
+		w := httptest.NewRecorder()
+		server.ServeHTTP(w, req)
+
+		var items []db.Item
+		err := json.Unmarshal(w.Body.Bytes(), &items)
+		require.NoError(t, err)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		for _, i := range items {
+			assert.Equal(t, cat, i.Category)
+		}
+	}
+
+	req, _ := http.NewRequest(http.MethodGet, "/item/category/nothing", nil)
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }

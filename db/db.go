@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -171,12 +170,12 @@ func QueryItembyCategory(category string) ([]Item, error) {
 
 	rows, err := db.Query(query, category)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	items, err = getItemsFromRow(rows, items)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	return items, nil
