@@ -1,14 +1,5 @@
 package db
 
-const (
-	FRUITS = iota
-	VEGETABLES
-	GRAINS
-	LIVESTOCK
-	DAIRY
-	OTHERS
-)
-
 type User struct {
 	Id       int    `json:"id"`
 	Username string `json:"username"`
