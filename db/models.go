@@ -1,5 +1,14 @@
 package db
 
+const (
+	FRUITS = iota
+	VEGETABLES
+	GRAINS
+	LIVESTOCK
+	DAIRY
+	OTHERS
+)
+
 type User struct {
 	Id       int    `json:"id"`
 	Username string `json:"username"`
@@ -13,4 +22,5 @@ type Item struct {
 	Description string  `json:"description"`
 	Amount      int     `json:"amount"`
 	CostPKilo   float64 `json:"costPKilo"`
+	Category    string  `json:"category"`
 }

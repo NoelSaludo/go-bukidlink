@@ -34,3 +34,23 @@ func getFruitsHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, fruits)
 }
+
+func getVegetablesHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "vegetables endpoint not implemented yet"})
+}
+
+func getGrainsHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "grains endpoint not implemented yet"})
+}
+
+func getLivestockHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "livestock endpoint not implemented yet"})
+}
+
+func getDiaryHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "diary endpoint not implemented yet"})
+}
+
+func getOtherHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "other endpoint not implemented yet"})
+}

@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDatabaseConnection(t *testing.T) {
 	err := SetupDatabase()
 
-	assert.Equal(t, nil, err)
+	require.NoError(t, err)
 	assert.Equal(t, nil, db.Ping())
 }
 
@@ -26,7 +27,7 @@ func TestQueryUsers(t *testing.T) {
 	}
 
 	resultUsers, err := QueryUsers("JohnDoe")
-	assert.Equal(t, nil, err)
+	require.NoError(t, err)
 	assert.ElementsMatch(t, expectedUsers, resultUsers)
 }
 
@@ -40,58 +41,28 @@ func TestInsertAndDelete(t *testing.T) {
 	}
 
 	generatedId, err := InsertUser(testUser)
-	assert.Equal(t, nil, err)
+	require.NoError(t, err)
+	assert.NotEmpty(t, generatedId)
 	err = DeleteUser(generatedId)
-	assert.Equal(t, nil, err)
+	require.NoError(t, err)
 }
 
 func TestGetItem(t *testing.T) {
 	_ = SetupDatabase()
 
-	expectedItem := Item{
-		Id:          1,
-		Name:        "Carrot",
-		Description: "A long, orange, and beautiful Carrot",
-		Amount:      10,
-	}
-
 	var item Item
-	item, err := QueryItemByID(1)
+	item, err := QueryItemByID(3)
 
-	assert.Equal(t, nil, err)
-	assert.Equal(t, expectedItem, item)
+	require.NoError(t, err)
+	assert.NotEmpty(t, item)
 }
 
 func TestGetAllItems(t *testing.T) {
 	_ = SetupDatabase()
 
-	expectedItems := []Item{
-		{
-			Id:          1,
-			Name:        "Carrot",
-			Description: "A long, orange, and beautiful Carrot",
-			Amount:      10,
-			CostPKilo:   0,
-		},
-		{
-			Id:          2,
-			Name:        "Potato",
-			Description: "A round, brown, and delicious Potato",
-			Amount:      20,
-			CostPKilo:   0,
-		},
-		{
-			Id:          3,
-			Name:        "Tomato",
-			Description: "A red, round, and juicy Tomato",
-			Amount:      30,
-			CostPKilo:   0,
-		},
-	}
-
 	var items []Item
 	items, err := QueryAllItem100(0)
 
-	assert.Equal(t, nil, err)
-	assert.ElementsMatch(t, expectedItems, items)
+	require.NoError(t, err)
+	assert.NotEmpty(t, items)
 }

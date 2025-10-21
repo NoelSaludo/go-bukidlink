@@ -115,8 +115,16 @@ func QueryItemByID(id int) (Item, error) {
 	var name string
 	var description string
 	var amount int
+	var costPKilo float64
+	var categories string
 
-	err := row.Scan(&itemId, &name, &description, &amount)
+	err := row.Scan(
+		&itemId,
+		&name,
+		&description,
+		&costPKilo,
+		&categories,
+		&amount)
 
 	if err != nil {
 		return Item{}, err
@@ -127,6 +135,8 @@ func QueryItemByID(id int) (Item, error) {
 		Name:        name,
 		Description: description,
 		Amount:      amount,
+		CostPKilo:   costPKilo,
+		Category:    categories,
 	}
 
 	return resItem, err
@@ -176,7 +186,16 @@ func getItemsFromRow(rows *sql.Rows, items []Item) ([]Item, error) {
 		var description string
 		var amount int
 		var costPKG float64
-		err := rows.Scan(&itemId, &name, &description, &amount, &costPKG)
+		var categories string
+
+		err := rows.Scan(
+			&itemId,
+			&name,
+			&description,
+			&costPKG,
+			&categories,
+			&amount)
+
 		if err != nil {
 			return items, err
 		}
@@ -186,6 +205,7 @@ func getItemsFromRow(rows *sql.Rows, items []Item) ([]Item, error) {
 			Description: description,
 			Amount:      amount,
 			CostPKilo:   costPKG,
+			Category:    categories,
 		})
 	}
 
