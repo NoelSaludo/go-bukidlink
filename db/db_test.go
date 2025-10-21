@@ -66,3 +66,13 @@ func TestGetAllItems(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, items)
 }
+
+func TestQueryFruits(t *testing.T) {
+	_ = SetupDatabase()
+
+	var fruits []Item
+	fruits, err := QueryFruits()
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, fruits)
+}

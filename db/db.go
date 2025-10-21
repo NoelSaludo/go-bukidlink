@@ -164,7 +164,7 @@ func QueryAllItem100(block int) ([]Item, error) {
 func QueryFruits() ([]Item, error) {
 	var items []Item
 	// TODO: complete the query
-	query := ""
+	query := "SELECT * FROM public.\"Item\" WHERE category='fruits'"
 
 	rows, err := db.Query(query)
 	if err != nil {
