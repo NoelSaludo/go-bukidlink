@@ -187,3 +187,23 @@ func getItemsFromRow(rows *sql.Rows, items []Item) ([]Item, error) {
 
 	return items, nil
 }
+
+func getCommentFromRow(rows *sql.Rows, comments []Comment) ([]Comment, error) {
+	for rows.Next() {
+		var comment Comment
+
+		err := rows.Scan(
+			&comment.Id,
+			&comment.ItemId,
+			&comment.UserId,
+			&comment.Content,
+			&comment.Rating)
+
+		if err != nil {
+			return comments, err
+		}
+
+		comments = append(comments, comment)
+	}
+	return comments, nil
+}
