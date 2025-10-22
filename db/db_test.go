@@ -101,3 +101,30 @@ func TestQueryItemsbyCategory(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, items)
 }
+
+func TestQueryCommentsEdgeCases(t *testing.T) {
+	_ = SetupDatabase()
+
+	// Case: item with no comments (assuming id 9999 does not exist)
+	comments, err := QueryCommentsOnItem(9999)
+	require.NoError(t, err)
+	assert.IsType(t, []Comment{}, comments)
+	assert.Empty(t, comments)
+
+	// Case: validate comment fields for a known item (3)
+	comments, err = QueryCommentsOnItem(3)
+	require.NoError(t, err)
+	require.NotEmpty(t, comments)
+
+	for _, c := range comments {
+		// IDs should be positive
+		assert.GreaterOrEqual(t, c.Id, 0)
+		assert.GreaterOrEqual(t, c.ItemId, 0)
+		assert.GreaterOrEqual(t, c.UserId, 0)
+		// Content should be non-empty
+		assert.NotEmpty(t, c.Content)
+		// Rating should be within expected bounds (0-5)
+		assert.GreaterOrEqual(t, int(c.Rating), 0)
+		assert.LessOrEqual(t, int(c.Rating), 5)
+	}
+}

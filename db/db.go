@@ -166,6 +166,25 @@ func QueryItembyCategory(category string) ([]Item, error) {
 	return items, nil
 }
 
+func QueryCommentsOnItem(itemid int) ([]Comment, error) {
+	var comments []Comment
+
+	query := `SELECT id, userid, itemid, content, rating
+			FROM public."Comment" WHERE itemid=$1`
+
+	rows, err := db.Query(query, itemid)
+	if err != nil {
+		return nil, err
+	}
+
+	comments, err = getCommentFromRow(rows, comments)
+	if err != nil {
+		return nil, err
+	}
+
+	return comments, nil
+}
+
 func getItemsFromRow(rows *sql.Rows, items []Item) ([]Item, error) {
 	for rows.Next() {
 		var item Item
@@ -194,8 +213,8 @@ func getCommentFromRow(rows *sql.Rows, comments []Comment) ([]Comment, error) {
 
 		err := rows.Scan(
 			&comment.Id,
-			&comment.ItemId,
 			&comment.UserId,
+			&comment.ItemId,
 			&comment.Content,
 			&comment.Rating)
 
