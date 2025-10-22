@@ -4,6 +4,7 @@ import (
 	"bukidlink/db"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,9 +28,33 @@ func setupServer() *gin.Engine {
 	userGroup.GET("/:username", getUserHandler)
 	userGroup.POST("", postUserHandler)
 
+	commentG := r.Group("/comment")
+	commentG.GET("/:itemId", getCommentByItemID)
+	commentG.POST("/:productID")
+
 	db.SetupDatabase()
 
 	return r
+}
+func getCommentByItemID(c *gin.Context) {
+	var itemid int
+	if id, err := strconv.Atoi(c.Param("itemId")); err != nil {
+		retInternalServErr(err, c)
+		return
+	} else {
+		itemid = id
+	}
+
+	var comments []db.Comment
+	if comms, err := db.QueryCommentsOnItem(itemid); err != nil {
+		retInternalServErr(err, c)
+		return
+	} else {
+		comments = comms
+	}
+
+	c.JSON(http.StatusOK, comments)
+
 }
 
 func main() {

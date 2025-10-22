@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -93,4 +94,21 @@ func TestGetItemsByCategory(t *testing.T) {
 	server.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestGetComments(t *testing.T) {
+	s := setupServer()
+
+	req, _ := http.NewRequest(http.MethodGet, "/comment/3", nil)
+	w := httptest.NewRecorder()
+
+	s.ServeHTTP(w, req)
+
+	var comments []db.Comment
+	if err := json.Unmarshal(w.Body.Bytes(), &comments); err != nil {
+		log.Fatal(err)
+	}
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEmpty(t, comments)
 }
