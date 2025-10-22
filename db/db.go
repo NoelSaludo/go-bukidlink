@@ -110,35 +110,21 @@ func QueryItemByID(id int) (Item, error) {
 
 	row := db.QueryRow(query, id)
 
-	var itemId int
-	var name string
-	var description string
-	var amount int
-	var costPKilo float64
-	var categories string
-
+	var item Item
 	err := row.Scan(
-		&itemId,
-		&name,
-		&description,
-		&costPKilo,
-		&categories,
-		&amount)
+		&item.Id,
+		&item.Name,
+		&item.Description,
+		&item.CostPKilo,
+		&item.Category,
+		&item.Amount,
+		&item.Rating)
 
 	if err != nil {
 		return Item{}, err
 	}
 
-	resItem := Item{
-		Id:          itemId,
-		Name:        name,
-		Description: description,
-		Amount:      amount,
-		CostPKilo:   costPKilo,
-		Category:    categories,
-	}
-
-	return resItem, err
+	return item, err
 }
 
 func QueryAllItem100(block int) ([]Item, error) {
@@ -165,8 +151,7 @@ func QueryAllItem100(block int) ([]Item, error) {
 // fruits, vegetables, grains, livestock, dairy, others
 func QueryItembyCategory(category string) ([]Item, error) {
 	var items []Item
-	// TODO: complete the query
-	query := "SELECT * FROM public.\"Item\" WHERE category=$1"
+	query := `SELECT * FROM public."Item" WHERE category=$1`
 
 	rows, err := db.Query(query, category)
 	if err != nil {
@@ -183,32 +168,21 @@ func QueryItembyCategory(category string) ([]Item, error) {
 
 func getItemsFromRow(rows *sql.Rows, items []Item) ([]Item, error) {
 	for rows.Next() {
-		var itemId int
-		var name string
-		var description string
-		var amount int
-		var costPKG float64
-		var categories string
+		var item Item
 
 		err := rows.Scan(
-			&itemId,
-			&name,
-			&description,
-			&costPKG,
-			&categories,
-			&amount)
+			&item.Id,
+			&item.Name,
+			&item.Description,
+			&item.CostPKilo,
+			&item.Category,
+			&item.Amount,
+			&item.Rating)
 
 		if err != nil {
 			return items, err
 		}
-		items = append(items, Item{
-			Id:          itemId,
-			Name:        name,
-			Description: description,
-			Amount:      amount,
-			CostPKilo:   costPKG,
-			Category:    categories,
-		})
+		items = append(items, item)
 	}
 
 	return items, nil
