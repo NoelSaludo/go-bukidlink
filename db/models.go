@@ -16,3 +16,11 @@ type Item struct {
 	Category    string  `json:"category"`
 	Rating      float64 `json:"rating"`
 }
+
+type Comment struct {
+	Id      int     `json:"id"`
+	ItemId  int     `json:"itemid"`
+	UserId  int     `json:"userid"`
+	Content string  `json:"content"`
+	Rating  float64 `json:"rating"`
+}
