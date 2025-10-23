@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -140,11 +141,7 @@ func QueryAllItem100(block int) ([]Item, error) {
 
 	defer rows.Close()
 
-	items, err = getItemsFromRow(rows, items)
-	if err != nil {
-		return items, err
-	}
-
+	items = getItemsFromRow(rows, items)
 	return items, err
 }
 
@@ -166,11 +163,7 @@ func QueryItembyCategory(category string) ([]Item, error) {
 		return nil, err
 	}
 
-	items, err = getItemsFromRow(rows, items)
-	if err != nil {
-		return nil, err
-	}
-
+	items = getItemsFromRow(rows, items)
 	return items, nil
 }
 
@@ -193,7 +186,32 @@ func QueryCommentsOnItem(itemid string) ([]Comment, error) {
 	return comments, nil
 }
 
-func getItemsFromRow(rows *sql.Rows, items []Item) ([]Item, error) {
+func QueryUsersItem(userid string) ([]Item, error) {
+	var items []Item
+	query := `
+	SELECT i.id   AS itemid,
+       i.name,
+       i.description,
+       i.costpkilo,
+       i.category,
+       i.amount
+		FROM "User" u
+		JOIN "UsersItem" ui ON u.id = ui.userid
+		JOIN "Item" i ON i.id = ui.itemid
+		WHERE u.id = $1; `
+
+	rows, err := db.Query(query, userid)
+	if err != nil {
+		return nil, err
+	}
+
+	items = getItemsFromRow(rows, items)
+
+	return items, nil
+}
+
+// must be used only with items and with proper order
+func getItemsFromRow(rows *sql.Rows, items []Item) []Item {
 	for rows.Next() {
 		var item Item
 
@@ -206,12 +224,12 @@ func getItemsFromRow(rows *sql.Rows, items []Item) ([]Item, error) {
 			&item.Amount)
 
 		if err != nil {
-			return items, err
+			log.Fatal(err)
 		}
 		items = append(items, item)
 	}
 
-	return items, nil
+	return items
 }
 
 func getCommentFromRow(rows *sql.Rows, comments []Comment) ([]Comment, error) {

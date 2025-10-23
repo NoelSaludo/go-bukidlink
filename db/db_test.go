@@ -76,31 +76,49 @@ func TestQueryItemsbyCategory(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, items)
+	for _, i := range items {
+		assert.Equal(t, "fruits", i.Category)
+	}
 
 	items, err = QueryItembyCategory("vegetables")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, items)
+	for _, i := range items {
+		assert.Equal(t, "vegetables", i.Category)
+	}
 
 	items, err = QueryItembyCategory("grains")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, items)
+	for _, i := range items {
+		assert.Equal(t, "grains", i.Category)
+	}
 
 	items, err = QueryItembyCategory("livestock")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, items)
+	for _, i := range items {
+		assert.Equal(t, "livestock", i.Category)
+	}
 
 	items, err = QueryItembyCategory("dairy")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, items)
+	for _, i := range items {
+		assert.Equal(t, "dairy", i.Category)
+	}
 
 	items, err = QueryItembyCategory("others")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, items)
+	for _, i := range items {
+		assert.Equal(t, "others", i.Category)
+	}
 }
 
 func TestQueryCommentsEdgeCases(t *testing.T) {
@@ -128,4 +146,12 @@ func TestQueryCommentsEdgeCases(t *testing.T) {
 		assert.GreaterOrEqual(t, int(c.Rating), 0)
 		assert.LessOrEqual(t, int(c.Rating), 5)
 	}
+}
+
+func TestUsersItemQuery(t *testing.T) {
+	_ = SetupDatabase()
+
+	items, err := QueryUsersItem("d30869ec-fb97-46d8-85a3-82608c01f803")
+	require.NoError(t, err)
+	assert.NotEmpty(t, items)
 }
