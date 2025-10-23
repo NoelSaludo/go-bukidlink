@@ -19,7 +19,7 @@ func TestQueryUsers(t *testing.T) {
 
 	expectedUsers := []User{
 		{
-			Id:       2,
+			Id:       `d30869ec-fb97-46d8-85a3-82608c01f803`,
 			Username: "JohnDoe",
 			Password: "P@ssw0rd",
 			Email:    "JohnDoe@example.com",
@@ -35,16 +35,17 @@ func TestInsertAndDelete(t *testing.T) {
 	_ = SetupDatabase()
 
 	testUser := User{
+		Id:       "01d85ea5-0c1f-457c-b1f5-04f4e48b54b6",
 		Username: "DanielGalliego",
 		Password: "VeryC00lP@ss",
 		Email:    "DanielGalliego@example.com",
 	}
 
-	generatedId, err := InsertUser(testUser)
+	err := InsertUser(testUser)
 	require.NoError(t, err)
-	assert.NotEmpty(t, generatedId)
-	err = DeleteUser(generatedId)
+	err = DeleteUser("01d85ea5-0c1f-457c-b1f5-04f4e48b54b6")
 	require.NoError(t, err)
+
 }
 
 func TestGetItem(t *testing.T) {

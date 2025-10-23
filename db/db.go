@@ -44,7 +44,7 @@ func Ping() error {
 
 func QueryUsers(username string) ([]User, error) {
 	var temp []User
-	query := `SELECT * FROM "User" WHERE username=$1`
+	query := `SELECT id, username, password, email FROM "User" WHERE username=$1`
 
 	rows, err := db.Query(query, username)
 	if err != nil {
@@ -52,48 +52,39 @@ func QueryUsers(username string) ([]User, error) {
 	}
 
 	for rows.Next() {
-		var id int
-		var username string
-		var password string
-		var email string
-		err := rows.Scan(&id, &username, &password, &email)
+		var user User
+		err := rows.Scan(&user.Id, &user.Username, &user.Password, &user.Email)
 
 		if err != nil {
 			return temp, err
 		}
 
-		temp = append(temp, User{
-			Id:       id,
-			Username: username,
-			Password: password,
-			Email:    email,
-		})
+		temp = append(temp, user)
 	}
 
 	return temp, err
 }
 
-func InsertUser(user User) (int64, error) {
+func InsertUser(user User) error {
 	query := `
 	INSERT INTO "User" (
-	username, password, email)
-	VALUES ($1, $2, $3) 
-	RETURNING id`
-	var id int64
+	id, username, password, email)
+	VALUES ($1, $2, $3, $4)`
 
-	err := db.QueryRow(query,
+	_, err := db.Exec(query,
+		user.Id,
 		user.Username,
 		user.Password,
-		user.Email).Scan(&id)
+		user.Email)
 
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return id, err
+	return err
 }
 
-func DeleteUser(id int64) error {
+func DeleteUser(id string) error {
 	query := `DELETE FROM "User" WHERE id=$1`
 
 	_, err := db.Exec(query, id)
