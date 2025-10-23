@@ -126,7 +126,13 @@ func QueryItemByID(id string) (Item, error) {
 func QueryAllItem100(block int) ([]Item, error) {
 	var items []Item
 	// select 100 items with offset
-	query := `SELECT id, name, description, costpkilo, category, amount FROM "Item" LIMIT 100 OFFSET $1`
+	query := `SELECT id,
+			name,
+			description,
+			costpkilo,
+			category,
+			amount 
+			FROM "Item" LIMIT 100 OFFSET $1`
 	rows, err := db.Query(query, block*100)
 	if err != nil {
 		return items, err
@@ -147,7 +153,13 @@ func QueryAllItem100(block int) ([]Item, error) {
 // fruits, vegetables, grains, livestock, dairy, others
 func QueryItembyCategory(category string) ([]Item, error) {
 	var items []Item
-	query := `SELECT id, name, description, costpkilo, category, amount FROM public."Item" WHERE category=$1`
+	query := `SELECT id,
+				name,
+				description,
+				costpkilo,
+				category,
+				amount 
+				FROM public."Item" WHERE category=$1`
 
 	rows, err := db.Query(query, category)
 	if err != nil {
