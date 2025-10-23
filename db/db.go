@@ -44,7 +44,9 @@ func Ping() error {
 
 func QueryUsers(username string) ([]User, error) {
 	var temp []User
-	query := `SELECT id, username, password, email FROM "User" WHERE username=$1`
+	query := `SELECT id, username, password, email 
+				FROM "User" 
+				WHERE username=$1`
 
 	rows, err := db.Query(query, username)
 	if err != nil {
@@ -53,7 +55,11 @@ func QueryUsers(username string) ([]User, error) {
 
 	for rows.Next() {
 		var user User
-		err := rows.Scan(&user.Id, &user.Username, &user.Password, &user.Email)
+		err := rows.Scan(
+			&user.Id,
+			&user.Username,
+			&user.Password,
+			&user.Email)
 
 		if err != nil {
 			return temp, err
