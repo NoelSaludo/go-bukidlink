@@ -4,7 +4,6 @@ import (
 	"bukidlink/db"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,13 +36,7 @@ func setupServer() *gin.Engine {
 	return r
 }
 func getCommentByItemID(c *gin.Context) {
-	var itemid int
-	if id, err := strconv.Atoi(c.Param("itemId")); err != nil {
-		retInternalServErr(err, c)
-		return
-	} else {
-		itemid = id
-	}
+	var itemid string = c.Param("itemId")
 
 	var comments []db.Comment
 	if comms, err := db.QueryCommentsOnItem(itemid); err != nil {

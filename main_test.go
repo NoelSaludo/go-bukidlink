@@ -101,7 +101,7 @@ func TestGetItemsByCategory(t *testing.T) {
 func TestGetComments(t *testing.T) {
 	s := setupServer()
 
-	req, _ := http.NewRequest(http.MethodGet, "/comment/3", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/comment/a3e1b9f2-7d94-4d3a-9b4a-111111111111", nil)
 	w := httptest.NewRecorder()
 
 	s.ServeHTTP(w, req)
