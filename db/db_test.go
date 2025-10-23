@@ -52,7 +52,7 @@ func TestGetItem(t *testing.T) {
 	_ = SetupDatabase()
 
 	var item Item
-	item, err := QueryItemByID(3)
+	item, err := QueryItemByID("a3e1b9f2-7d94-4d3a-9b4a-111111111111")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, item)
@@ -107,21 +107,21 @@ func TestQueryCommentsEdgeCases(t *testing.T) {
 	_ = SetupDatabase()
 
 	// Case: item with no comments (assuming id 9999 does not exist)
-	comments, err := QueryCommentsOnItem(9999)
+	comments, err := QueryCommentsOnItem("3c270f60-8934-4692-8922-011f25dda434")
 	require.NoError(t, err)
 	assert.IsType(t, []Comment{}, comments)
 	assert.Empty(t, comments)
 
 	// Case: validate comment fields for a known item (3)
-	comments, err = QueryCommentsOnItem(3)
+	comments, err = QueryCommentsOnItem("a3e1b9f2-7d94-4d3a-9b4a-111111111111")
 	require.NoError(t, err)
 	require.NotEmpty(t, comments)
 
 	for _, c := range comments {
 		// IDs should be positive
-		assert.GreaterOrEqual(t, c.Id, 0)
-		assert.GreaterOrEqual(t, c.ItemId, 0)
-		assert.GreaterOrEqual(t, c.UserId, 0)
+		assert.IsType(t, "", c.Id)
+		assert.IsType(t, "", c.UserId)
+		assert.IsType(t, "", c.ItemId)
 		// Content should be non-empty
 		assert.NotEmpty(t, c.Content)
 		// Rating should be within expected bounds (0-5)

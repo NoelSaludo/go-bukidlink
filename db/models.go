@@ -8,19 +8,18 @@ type User struct {
 }
 
 type Item struct {
-	Id          int     `json:"id"`
+	Id          string  `json:"id"`
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Amount      int     `json:"amount"`
 	CostPKilo   float64 `json:"costPKilo"`
 	Category    string  `json:"category"`
-	Rating      float64 `json:"rating"`
 }
 
 type Comment struct {
-	Id      int     `json:"id"`
-	ItemId  int     `json:"itemid"`
-	UserId  int     `json:"userid"`
+	Id      string  `json:"id"`
+	ItemId  string  `json:"itemid"`
+	UserId  string  `json:"userid"`
 	Content string  `json:"content"`
 	Rating  float64 `json:"rating"`
 }

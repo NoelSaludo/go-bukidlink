@@ -101,9 +101,9 @@ func DeleteUser(id string) error {
 	return nil
 }
 
-func QueryItemByID(id int) (Item, error) {
+func QueryItemByID(id string) (Item, error) {
 
-	query := `SELECT * FROM "Item" WHERE id=$1`
+	query := `SELECT id, name, description, costpkilo, category, amount FROM "Item" WHERE id=$1`
 
 	row := db.QueryRow(query, id)
 
@@ -114,8 +114,7 @@ func QueryItemByID(id int) (Item, error) {
 		&item.Description,
 		&item.CostPKilo,
 		&item.Category,
-		&item.Amount,
-		&item.Rating)
+		&item.Amount)
 
 	if err != nil {
 		return Item{}, err
@@ -127,7 +126,7 @@ func QueryItemByID(id int) (Item, error) {
 func QueryAllItem100(block int) ([]Item, error) {
 	var items []Item
 	// select 100 items with offset
-	query := `SELECT * FROM "Item" LIMIT 100 OFFSET $1`
+	query := `SELECT id, name, description, costpkilo, category, amount FROM "Item" LIMIT 100 OFFSET $1`
 	rows, err := db.Query(query, block*100)
 	if err != nil {
 		return items, err
@@ -148,7 +147,7 @@ func QueryAllItem100(block int) ([]Item, error) {
 // fruits, vegetables, grains, livestock, dairy, others
 func QueryItembyCategory(category string) ([]Item, error) {
 	var items []Item
-	query := `SELECT * FROM public."Item" WHERE category=$1`
+	query := `SELECT id, name, description, costpkilo, category, amount FROM public."Item" WHERE category=$1`
 
 	rows, err := db.Query(query, category)
 	if err != nil {
@@ -163,7 +162,7 @@ func QueryItembyCategory(category string) ([]Item, error) {
 	return items, nil
 }
 
-func QueryCommentsOnItem(itemid int) ([]Comment, error) {
+func QueryCommentsOnItem(itemid string) ([]Comment, error) {
 	var comments []Comment
 
 	query := `SELECT id, userid, itemid, content, rating
@@ -192,8 +191,7 @@ func getItemsFromRow(rows *sql.Rows, items []Item) ([]Item, error) {
 			&item.Description,
 			&item.CostPKilo,
 			&item.Category,
-			&item.Amount,
-			&item.Rating)
+			&item.Amount)
 
 		if err != nil {
 			return items, err
