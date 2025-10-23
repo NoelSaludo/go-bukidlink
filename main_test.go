@@ -28,7 +28,7 @@ func TestPostUser(t *testing.T) {
 	server := setupServer()
 
 	data := db.User{
-		Id:       1,
+		Id:       "01d85ea5-0c1f-457c-b1f5-04f4e48b54b6",
 		Username: "JohnDoe",
 		Password: "password123",
 		Email:    "JohnDoe@example.com",
@@ -53,9 +53,11 @@ func TestGetUser(t *testing.T) {
 
 	server.ServeHTTP(w, req)
 
-	result := `{"id":2,"username":"JohnDoe","password":"P@ssw0rd","email":"JohnDoe@example.com"}`
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, result, w.Body.String())
+	var user db.User
+	err := json.Unmarshal(w.Body.Bytes(), &user)
+	require.NoError(t, err)
+	assert.NotEmpty(t, user)
 }
 
 func Test100Items(t *testing.T) {

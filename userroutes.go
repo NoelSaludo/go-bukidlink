@@ -15,7 +15,7 @@ func postUserHandler(c *gin.Context) {
 		return
 	}
 	var id int64
-	id, err = db.InsertUser(data)
+	err = db.InsertUser(data)
 
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
