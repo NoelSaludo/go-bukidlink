@@ -104,7 +104,18 @@ func DeleteUser(id string) error {
 
 func QueryItemByID(id string) (Item, error) {
 
-	query := `SELECT id, name, description, costpkilo, category, amount FROM "Item" WHERE id=$1`
+	query := `SELECT i.id as itemid,
+			i.name,
+			i.description,
+			i.costpkilo,
+			i.category,
+			i.amount,
+			AVG(c.rating) AS rating
+			FROM "Item" AS i
+			JOIN "Comment" AS C ON c.itemid = i.id
+			WHERE i.id=$1
+			GROUP BY i.id, i.name
+			`
 
 	row := db.QueryRow(query, id)
 
@@ -115,7 +126,7 @@ func QueryItemByID(id string) (Item, error) {
 		&item.Description,
 		&item.CostPKilo,
 		&item.Category,
-		&item.Amount)
+		&item.Amount, &item.Rating)
 
 	if err != nil {
 		return Item{}, err
