@@ -36,3 +36,15 @@ func getItemByCategory(c *gin.Context) {
 
 	c.JSON(http.StatusOK, fruits)
 }
+
+func getItembyId(c *gin.Context) {
+	itemid := c.Query("id")
+
+	item, err := db.QueryItemByID(itemid)
+	if err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+
+	c.JSON(http.StatusOK, item)
+}

@@ -114,3 +114,20 @@ func TestGetComments(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEmpty(t, comments)
 }
+
+func TestGetItemById(t *testing.T) {
+	server := setupServer()
+
+	req, _ := http.NewRequest(http.MethodGet, "/item?id=a3e1b9f2-7d94-4d3a-9b4a-111111111111", nil)
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	var item db.Item
+	if err := json.Unmarshal(w.Body.Bytes(), &item); err != nil {
+		log.Fatal(err)
+	}
+
+	assert.NotEmpty(t, item)
+	assert.NotEmpty(t, item.Rating)
+}
