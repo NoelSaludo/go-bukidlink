@@ -2,7 +2,6 @@ package main
 
 import (
 	"bukidlink/db"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -54,10 +53,4 @@ func main() {
 	r := setupServer()
 
 	r.Run("localhost:8080")
-}
-
-func checkErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
 }
