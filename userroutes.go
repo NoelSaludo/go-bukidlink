@@ -14,7 +14,7 @@ func postUserHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	var id int64
+
 	err = db.InsertUser(data)
 
 	if err != nil {
@@ -22,7 +22,7 @@ func postUserHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Success", "created_id": id})
+	c.JSON(http.StatusOK, gin.H{"message": "Success"})
 }
 
 func getUserHandler(c *gin.Context) {
