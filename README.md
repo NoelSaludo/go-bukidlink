@@ -38,89 +38,67 @@ This is a simple Go API for BukidLink.
 
 ## Usage
 
-1.  **Build the application:**
+This section gives a concise summary of the server routes, examples of how to call them with `curl`, and what to expect in request and response bodies. For full, expanded documentation (detailed request/response shapes, examples and notes) see `docs/usage.md`.
 
-    ```bash
-    go build -o ./build
-    ```
+Quick start
 
-2.  **Run the application:**
+```bash
+# run from project root
+go run main.go
+```
 
-    ```bash
-    ./build/bukidlink
-    ```
+Server address: http://localhost:8080
 
-    The server will start on `localhost:8080`.
+Primary routes (summary)
 
-## API Routes
+- GET /ping
+    - Purpose: health check
+    - Response: 200 OK, JSON: {"message":"pong"}
+    - Example: `curl -i http://localhost:8080/ping`
 
-### Health Check
+- GET /item/:block
+    - Purpose: retrieve a page/block of items (tests use `/item/0`)
+    - Path param: `:block` (page index)
+    - Response: 200 OK, JSON array of Item objects
+    - Example: `curl -i http://localhost:8080/item/0`
 
-*   **GET /ping**
+- GET /item/category/:category
+    - Purpose: list items in a category
+    - Path param: `:category` — one of `fruits, vegetables, grains, livestock, dairy, others`
+    - Response: 200 OK with JSON items for valid categories; 500 for invalid category
+    - Example: `curl -i http://localhost:8080/item/category/fruits`
 
-    Returns a simple "pong" message to indicate that the server is running.
+- GET /user/:username
+    - Purpose: fetch a user by username
+    - Path param: `:username`
+    - Response: 200 OK, JSON User object
+    - Example: `curl -i http://localhost:8080/user/JohnDoe`
 
-    **Response:**
-
-    ```json
-    {
-        "message": "pong"
-    }
-    ```
-
-### User Management
-
-*   **GET /user/:username**
-
-    Retrieves a user by their username.
-
-    **Parameters:**
-
-    *   `username` (string): The username of the user to retrieve.
-
-    **Response:**
-
-    *   **200 OK:**
-
-        ```json
-        {
-            "id": 1,
-            "username": "testuser",
-            "password": "password"
-        }
+- POST /user
+    - Purpose: insert a new user
+    - Headers: `Content-Type: application/json`
+    - Body: JSON `User` object (see `docs/usage.md` for an example)
+    - Responses: 201 Created on success, 409 Conflict if user exists (tests expect conflict for a known user)
+    - Example:
+        ```bash
+        curl -i -X POST -H "Content-Type: application/json" \
+            -d '{"id":"01d85ea5-0c1f-457c-b1f5-04f4e48b54b6","username":"JohnDoe","password":"password123","email":"JohnDoe@example.com"}' \
+            http://localhost:8080/user
         ```
 
-    *   **400 Bad Request:**
+- GET /comment/:itemId
+    - Purpose: list comments for an item
+    - Path param: `:itemId` (UUID)
+    - Response: 200 OK, JSON array of Comment objects
+    - Example: `curl -i http://localhost:8080/comment/a3e1b9f2-7d94-4d3a-9b4a-111111111111`
 
-        ```json
-        {
-            "error": "User not found"
-        }
-        ```
+- POST /comment/:productID
+    - Note: route is registered in `main.go` but no handler is implemented yet. Calling this endpoint will not create comments until a handler is provided.
 
-*   **POST /postuser**
+Notes & pointers
 
-    Creates a new user.
+- The server calls `db.SetupDatabase()` on startup; ensure your Postgres instance is available and environment variables for DB connection are set.
+- Example UUIDs and expected behaviors are taken from tests (`main_test.go` and `db_test.go`) — use those values for manual testing.
+- Full request/response shapes, additional examples, and implementation notes are available in `docs/usage.md`.
 
-    **Request Body:**
-
-    ```json
-    {
-        "username": "newuser",
-        "password": "newpassword"
-    }
-    ```
-
-    **Response:**
-
-    *   **200 OK:**
-
-        ```json
-        {
-            "message": "Success"
-        }
-        ```
-
-    *   **400 Bad Request:**
-
-        If the request body is invalid.
+If you want, I can fold the entire `docs/usage.md` into README or add example JSON responses for each endpoint inline.
