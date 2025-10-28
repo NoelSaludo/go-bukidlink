@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"bukidlink/db"
 
@@ -130,4 +132,66 @@ func TestGetItemById(t *testing.T) {
 
 	assert.NotEmpty(t, item)
 	assert.NotEmpty(t, item.Rating)
+}
+
+func TestGetOrder(t *testing.T) {
+	server := setupServer()
+
+	req, _ := http.NewRequest(http.MethodGet, "/order?id=462c9fb9-5c29-4b78-abc7-c263e77c2cd0", nil)
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	var order db.Order
+	if err := json.Unmarshal(w.Body.Bytes(), &order); err != nil {
+		log.Fatal(err)
+	}
+
+	if w.Code != http.StatusOK {
+		fmt.Println("Response Body:", w.Body.String())
+	}
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotEmpty(t, order)
+
+	// handle non-existing order
+	req, _ = http.NewRequest(http.MethodGet, "/order?id=non-existing-id", nil)
+	w = httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestPostandDeleteOrder(t *testing.T) {
+	server := setupServer()
+	data := db.Order{
+		Id:          "test-order-123",
+		UserId:      "d30869ec-fb97-46d8-85a3-82608c01f803",
+		ItemId:      "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
+		Amount:      2,
+		Status:      "pending",
+		CreatedDate: time.Now(),
+	}
+
+	jData, _ := json.Marshal(data)
+
+	req, _ := http.NewRequest(http.MethodPost, "/order", bytes.NewBuffer(jData))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		fmt.Println("Response Body:", w.Body.String())
+	}
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Now delete the order
+	req, _ = http.NewRequest(http.MethodDelete, "/order?id=test-order-123", nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
 }

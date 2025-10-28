@@ -9,3 +9,7 @@ import (
 func retInternalServErr(err error, c *gin.Context) {
 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }
+
+func retBadReqErr(err error, c *gin.Context) {
+	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+}
