@@ -18,7 +18,6 @@ func QueryTransaction(id string) (Transaction, error) {
 
 	row := db.QueryRow(query, id)
 	if err := row.Err(); err != nil {
-		fmt.Errorf("Error querying row: %s", err.Error())
 		return transaction, err
 	}
 
@@ -32,7 +31,6 @@ func QueryTransaction(id string) (Transaction, error) {
 	transaction.Id = id
 
 	if err != nil {
-		fmt.Errorf("Error scanning: %s", err.Error())
 		return transaction, err
 	}
 
@@ -42,16 +40,44 @@ func QueryTransaction(id string) (Transaction, error) {
 func InsertTransaction(trans Transaction) error {
 	var err error
 
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
 	query := `
 	INSERT INTO "Transaction"
 	(id, user_id, item_id, amount, created_date)	
 	VALUES ($1, $2, $3, $4, $5)
 	`
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return err
+	}
 
-	_, err = db.Exec(query, trans.Id, trans.UserId, trans.ItemId, trans.amount,
+	_, err = tx.Stmt(stmt).Exec(trans.Id, trans.UserId, trans.ItemId, trans.amount,
 		trans.CreatedDate)
 	if err != nil {
-		fmt.Errorf("Inserting error: %s", err.Error())
+		if rberr := tx.Rollback(); rberr != nil {
+			return rberr
+		}
+		return err
+	}
+
+	query = `
+	INSERT INTO "Packaging"
+	(id, transaction_id)
+	VALUES ($1, $2)
+	`
+	_, err = tx.Prepare(query)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Stmt(stmt).Exec(uuid.New().String(), trans.Id)
+	if err != nil {
+		if rberr := tx.Rollback(); rberr != nil {
+			return rberr
+		}
 		return err
 	}
 
@@ -68,7 +94,6 @@ func DeleteTransaction(id string) error {
 
 	_, err = db.Exec(query, id)
 	if err != nil {
-		fmt.Errorf("Deletion Failed: %s", err.Error())
 		return err
 	}
 
