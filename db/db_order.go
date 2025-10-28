@@ -41,8 +41,8 @@ func InsertOrder(order Order) error {
 
 	query := `
 	INSERT INTO "Order"
-	(id, user_id, item_id, amount, status, created_date)	
-	VALUES ($1, $2, $3, $4, $5, $6)
+	(id, user_id, item_id, amount, created_date)	
+	VALUES ($1, $2, $3, $4, $5)
 	`
 	stmt, err := tx.Prepare(query)
 	if err != nil {
@@ -50,7 +50,7 @@ func InsertOrder(order Order) error {
 	}
 
 	_, err = tx.Stmt(stmt).Exec(order.Id, order.UserId, order.ItemId, order.Amount,
-		order.Status, order.CreatedDate)
+		order.CreatedDate)
 	if err != nil {
 		if rberr := tx.Rollback(); rberr != nil {
 			return rberr

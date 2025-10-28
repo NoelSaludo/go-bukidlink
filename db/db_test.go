@@ -153,7 +153,7 @@ func TestUsersItemQuery(t *testing.T) {
 func TestGetTransaction(t *testing.T) {
 	_ = SetupDatabase()
 
-	transaction, err := QueryTransaction("462c9fb9-5c29-4b78-abc7-c263e77c2cd0")
+	transaction, err := QueryOrder("462c9fb9-5c29-4b78-abc7-c263e77c2cd0")
 
 	fmt.Printf("Date: %s", transaction.CreatedDate)
 	require.NoError(t, err)
@@ -163,27 +163,15 @@ func TestGetTransaction(t *testing.T) {
 func TestInsertandDeleteTransaction(t *testing.T) {
 	_ = SetupDatabase()
 
-	data := Transaction{
+	data := Order{
 		Id:          "d46b0691-9fad-4be1-9ba4-52f643333b37",
 		UserId:      "c6554794-849f-4338-87c5-6db2e2f76514",
 		ItemId:      "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
-		amount:      20,
+		Amount:      20,
 		CreatedDate: time.Now(),
 	}
-	err := InsertTransaction(data)
+	err := InsertOrder(data)
 	require.NoError(t, err)
-	err = DeleteTransaction("d46b0691-9fad-4be1-9ba4-52f643333b37")
+	err = DeleteOrder("d46b0691-9fad-4be1-9ba4-52f643333b37")
 	require.NoError(t, err)
-}
-
-func TestMoveTransactionStatus(t *testing.T) {
-	_ = SetupDatabase()
-
-	tx_id := "462c9fb9-5c29-4b78-abc7-c263e77c2cd0"
-
-	MoveTransactionStatus(tx_id, "Packaging", "OnDeliver")
-
-	MoveTransactionStatus(tx_id, "OnDeliver", "Recieved")
-
-	MoveTransactionStatus(tx_id, "Recieved", "Packaging")
 }
