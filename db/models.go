@@ -28,10 +28,11 @@ type Review struct {
 	Rating  float64 `json:"rating"`
 }
 
-type Transaction struct {
+type Order struct {
 	Id          string    `json:"id"`
 	UserId      string    `json:"userid"`
 	ItemId      string    `json:"itemid"`
-	amount      int       `json:"amount"`
+	Amount      int       `json:"amount"`
+	Status      string    `json:"status"`
 	CreatedDate time.Time `json:"created_date"`
 }
