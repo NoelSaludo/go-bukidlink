@@ -1,12 +1,5 @@
 package db
 
-import (
-	"fmt"
-	"log"
-
-	"github.com/google/uuid"
-)
-
 func QueryOrder(id string) (Order, error) {
 	var order Order
 
@@ -86,48 +79,4 @@ func DeleteOrder(id string) error {
 	}
 
 	return err
-}
-
-func MoveOrderStatus(id, src, dst string) {
-	var err error
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatal("Failed to begin transaction: ", err)
-	}
-
-	if src == dst {
-		log.Fatal("SRC and DST Columns are similar")
-	}
-
-	query := fmt.Sprintf(`DELETE FROM "%s" WHERE order_id = $1`, src)
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		log.Fatal("Delete query preparation failed: ", err)
-	}
-	_, err = tx.Stmt(stmt).Exec(id)
-	if err != nil {
-		if rberr := tx.Rollback(); rberr != nil {
-			log.Fatal("Rollback Failed: ", rberr)
-		}
-		log.Fatal("Failed to delete data: ", err)
-	}
-
-	query = fmt.Sprintf(`INSERT INTO "%s" (id, order_id) VALUES ($1, $2)`,
-		dst)
-	stmt, err = tx.Prepare(query)
-	if err != nil {
-		log.Fatal("Insert query failed: ", err)
-	}
-	_, err = tx.Stmt(stmt).Exec(uuid.New().String(), id)
-	if err != nil {
-		if rberr := tx.Rollback(); rberr != nil {
-			log.Fatal("Rollback Failed: ", rberr)
-		}
-		log.Fatal("Failed to delete data: ", err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Fatal("Commit failed: ", err)
-	}
 }
