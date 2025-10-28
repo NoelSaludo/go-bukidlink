@@ -1,7 +1,9 @@
 package db
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -146,4 +148,30 @@ func TestUsersItemQuery(t *testing.T) {
 	items, err := QueryUsersItem("d30869ec-fb97-46d8-85a3-82608c01f803")
 	require.NoError(t, err)
 	assert.NotEmpty(t, items)
+}
+
+func TestGetTransaction(t *testing.T) {
+	_ = SetupDatabase()
+
+	transaction, err := getTransaction("462c9fb9-5c29-4b78-abc7-c263e77c2cd0")
+
+	fmt.Printf("Date: %s", transaction.CreatedDate)
+	require.NoError(t, err)
+	assert.NotEmpty(t, transaction)
+}
+
+func TestInsertandDeleteTransaction(t *testing.T) {
+	_ = SetupDatabase()
+
+	data := Transaction{
+		Id:          "d46b0691-9fad-4be1-9ba4-52f643333b37",
+		UserId:      "c6554794-849f-4338-87c5-6db2e2f76514",
+		ItemId:      "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
+		amount:      20,
+		CreatedDate: time.Now(),
+	}
+	err := InsertTransaction(data)
+	require.NoError(t, err)
+	err = DeleteTransaction("d46b0691-9fad-4be1-9ba4-52f643333b37")
+	require.NoError(t, err)
 }
