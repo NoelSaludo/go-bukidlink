@@ -172,6 +172,16 @@ func TestInsertandDeleteTransaction(t *testing.T) {
 	}
 	err := InsertOrder(data)
 	require.NoError(t, err)
+
+	err = UpdateOrderStatus(data.Id, "Shipping")
+	require.NoError(t, err)
+
+	err = UpdateOrderStatus(data.Id, "Recieved")
+	require.NoError(t, err)
+
+	err = UpdateOrderStatus(data.Id, "Packaging")
+	require.NoError(t, err)
+
 	err = DeleteOrder("d46b0691-9fad-4be1-9ba4-52f643333b37")
 	require.NoError(t, err)
 }

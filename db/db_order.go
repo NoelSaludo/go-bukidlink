@@ -1,5 +1,9 @@
 package db
 
+import (
+	"database/sql"
+)
+
 func QueryOrder(id string) (Order, error) {
 	var order Order
 
@@ -79,4 +83,30 @@ func DeleteOrder(id string) error {
 	}
 
 	return err
+}
+
+// status includes: "Packaging", "Shipping", "Recieved"
+// legacy includes: "Paid", "Rated"
+func UpdateOrderStatus(id string, status string) error {
+	query := `
+	UPDATE "Order"
+	SET status = $1
+	WHERE id = $2
+	`
+
+	result, err := db.Exec(query, status, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
