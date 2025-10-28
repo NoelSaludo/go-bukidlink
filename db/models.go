@@ -1,10 +1,11 @@
 package db
 
 type User struct {
-	Id       string `json:"id"`
+	Id       string `json:"id"` // uuid
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
+	Address  string `json:"address"`
 }
 
 type Item struct {

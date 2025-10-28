@@ -45,7 +45,7 @@ func Ping() error {
 
 func QueryUsers(username string) ([]User, error) {
 	var temp []User
-	query := `SELECT id, username, password, email 
+	query := `SELECT id, username, password, email, address
 				FROM "User" 
 				WHERE username=$1`
 
@@ -60,7 +60,8 @@ func QueryUsers(username string) ([]User, error) {
 			&user.Id,
 			&user.Username,
 			&user.Password,
-			&user.Email)
+			&user.Email,
+			&user.Address)
 
 		if err != nil {
 			return temp, err
@@ -75,14 +76,15 @@ func QueryUsers(username string) ([]User, error) {
 func InsertUser(user User) error {
 	query := `
 	INSERT INTO "User" (
-	id, username, password, email)
+	id, username, password, email, address)
 	VALUES ($1, $2, $3, $4)`
 
 	_, err := db.Exec(query,
 		user.Id,
 		user.Username,
 		user.Password,
-		user.Email)
+		user.Email,
+		user.Address)
 
 	if err != nil {
 		return err
