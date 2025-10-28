@@ -106,7 +106,7 @@ func TestGetComments(t *testing.T) {
 
 	s.ServeHTTP(w, req)
 
-	var comments []db.Comment
+	var comments []db.Review
 	if err := json.Unmarshal(w.Body.Bytes(), &comments); err != nil {
 		log.Fatal(err)
 	}

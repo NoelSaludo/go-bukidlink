@@ -77,7 +77,7 @@ func InsertUser(user User) error {
 	query := `
 	INSERT INTO "User" (
 	id, username, password, email, address)
-	VALUES ($1, $2, $3, $4)`
+	VALUES ($1, $2, $3, $4, $5)`
 
 	_, err := db.Exec(query,
 		user.Id,
@@ -114,7 +114,7 @@ func QueryItemByID(id string) (Item, error) {
 			i.amount,
 			AVG(c.rating) AS rating
 			FROM "Item" AS i
-			JOIN "Comment" AS C ON c.itemid = i.id
+			JOIN "Review" AS C ON c.itemid = i.id
 			WHERE i.id=$1
 			GROUP BY i.id, i.name
 			`
@@ -180,23 +180,23 @@ func QueryItembyCategory(category string) ([]Item, error) {
 	return items, nil
 }
 
-func QueryCommentsOnItem(itemid string) ([]Comment, error) {
-	var comments []Comment
+func QueryReviewsOnItem(itemid string) ([]Review, error) {
+	var reviews []Review
 
 	query := `SELECT id, userid, itemid, content, rating
-			FROM public."Comment" WHERE itemid=$1`
+			FROM public."Review" WHERE itemid=$1`
 
 	rows, err := db.Query(query, itemid)
 	if err != nil {
 		return nil, err
 	}
 
-	comments, err = getCommentFromRow(rows, comments)
+	reviews, err = getReviewFromRow(rows, reviews)
 	if err != nil {
 		return nil, err
 	}
 
-	return comments, nil
+	return reviews, nil
 }
 
 func QueryUsersItem(userid string) ([]Item, error) {
@@ -245,22 +245,22 @@ func getItemsFromRow(rows *sql.Rows, items []Item) []Item {
 	return items
 }
 
-func getCommentFromRow(rows *sql.Rows, comments []Comment) ([]Comment, error) {
+func getReviewFromRow(rows *sql.Rows, reviews []Review) ([]Review, error) {
 	for rows.Next() {
-		var comment Comment
+		var review Review
 
 		err := rows.Scan(
-			&comment.Id,
-			&comment.UserId,
-			&comment.ItemId,
-			&comment.Content,
-			&comment.Rating)
+			&review.Id,
+			&review.UserId,
+			&review.ItemId,
+			&review.Content,
+			&review.Rating)
 
 		if err != nil {
-			return comments, err
+			return reviews, err
 		}
 
-		comments = append(comments, comment)
+		reviews = append(reviews, review)
 	}
-	return comments, nil
+	return reviews, nil
 }

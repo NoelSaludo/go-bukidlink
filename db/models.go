@@ -1,5 +1,7 @@
 package db
 
+import "time"
+
 type User struct {
 	Id       string `json:"id"` // uuid
 	Username string `json:"username"`
@@ -18,10 +20,18 @@ type Item struct {
 	Rating      float64 `json:"rating"`
 }
 
-type Comment struct {
+type Review struct {
 	Id      string  `json:"id"`
 	ItemId  string  `json:"itemid"`
 	UserId  string  `json:"userid"`
 	Content string  `json:"content"`
 	Rating  float64 `json:"rating"`
+}
+
+type Transaction struct {
+	Id          string    `json:"id"`
+	UserId      string    `json:"userid"`
+	ItemId      string    `json:"itemid"`
+	amount      int       `json:"amount"`
+	CreatedDate time.Time `json:"created_date"`
 }

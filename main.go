@@ -38,15 +38,15 @@ func setupServer() *gin.Engine {
 func getCommentByItemID(c *gin.Context) {
 	var itemid string = c.Param("itemId")
 
-	var comments []db.Comment
-	if comms, err := db.QueryCommentsOnItem(itemid); err != nil {
+	var reviews []db.Review
+	if comms, err := db.QueryReviewsOnItem(itemid); err != nil {
 		retInternalServErr(err, c)
 		return
 	} else {
-		comments = comms
+		reviews = comms
 	}
 
-	c.JSON(http.StatusOK, comments)
+	c.JSON(http.StatusOK, reviews)
 
 }
 
