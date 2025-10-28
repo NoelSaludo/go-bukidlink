@@ -35,12 +35,24 @@ func setupServer() *gin.Engine {
 	orderG.GET("", getOrderHandler)
 	orderG.POST("", postOrderHandler)
 	orderG.DELETE("", deleteOrderHandler)
+	orderG.POST("/status", updateOrderStatusHandler)
 
 	db.SetupDatabase()
 
 	return r
 }
 
+func updateOrderStatusHandler(c *gin.Context) {
+	var id string = c.Query("id")
+	var status string = c.Query("status")
+
+	if err := db.UpdateOrderStatus(id, status); err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "order status updated"})
+}
 func getOrderHandler(c *gin.Context) {
 	var id string = c.Query("id")
 

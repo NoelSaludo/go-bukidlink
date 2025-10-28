@@ -134,7 +134,7 @@ func TestGetItemById(t *testing.T) {
 	assert.NotEmpty(t, item.Rating)
 }
 
-func TestGetOrder(t *testing.T) {
+func TestGetAndUpdateOrder(t *testing.T) {
 	server := setupServer()
 
 	req, _ := http.NewRequest(http.MethodGet, "/order?id=462c9fb9-5c29-4b78-abc7-c263e77c2cd0", nil)
@@ -154,11 +154,26 @@ func TestGetOrder(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotEmpty(t, order)
 
+	// update status
+	req, _ = http.NewRequest(http.MethodPost, "/order/status?id=462c9fb9-5c29-4b78-abc7-c263e77c2cd0&status=Shipping", nil)
+	w = httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		fmt.Println("Response Body:", w.Body.String())
+	}
+	assert.Equal(t, http.StatusOK, w.Code)
+
 	// handle non-existing order
 	req, _ = http.NewRequest(http.MethodGet, "/order?id=non-existing-id", nil)
 	w = httptest.NewRecorder()
 
 	server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		fmt.Println("Response Body:", w.Body.String())
+	}
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
@@ -170,7 +185,7 @@ func TestPostandDeleteOrder(t *testing.T) {
 		UserId:      "d30869ec-fb97-46d8-85a3-82608c01f803",
 		ItemId:      "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
 		Amount:      2,
-		Status:      "pending",
+		Status:      "Packaging",
 		CreatedDate: time.Now(),
 	}
 
