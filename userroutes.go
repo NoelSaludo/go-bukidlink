@@ -26,21 +26,19 @@ func postUserHandler(c *gin.Context) {
 }
 
 func getUserHandler(c *gin.Context) {
-	temp := []db.User{}
+	var temp db.User
 
 	usernameP := c.Param("username")
 
-	temp, err := db.QueryUsers(usernameP)
+	temp, err := db.QueryUser(usernameP)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	for _, user := range temp {
-		if user.Username == usernameP {
-			c.JSON(http.StatusOK, user)
-			return
-		}
+	if temp.Username != "" {
+		c.JSON(http.StatusOK, temp)
+		return
 	}
 
 	c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})

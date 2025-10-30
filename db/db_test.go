@@ -18,25 +18,38 @@ func TestDatabaseConnection(t *testing.T) {
 func TestQueryUsers(t *testing.T) {
 	_ = SetupDatabase()
 
-	resultUsers, err := QueryUsers("JohnDoe")
+	resultUser, err := QueryUser("JohnDoe")
 	require.NoError(t, err)
-	assert.NotEmpty(t, resultUsers)
+	assert.NotEmpty(t, resultUser)
+	assert.Equal(t, "JohnDoe", resultUser.Username)
+	assert.NotEmpty(t, resultUser.Details.Address)
+	assert.NotEmpty(t, resultUser.Details.FirstName)
+	assert.NotEmpty(t, resultUser.Details.LastName)
 }
 
 func TestInsertAndDelete(t *testing.T) {
 	_ = SetupDatabase()
 
 	testUser := User{
-		Id:       "01d85ea5-0c1f-457c-b1f5-04f4e48b54b6",
 		Username: "DanielGalliego",
 		Password: "VeryC00lP@ss",
 		Email:    "DanielGalliego@example.com",
-		Address:  "In our hearts",
+		Details: UserDetail{
+			Address:       "In our hearts",
+			FirstName:     "Daniel",
+			LastName:      "Galliego",
+			ContactNumber: "+1234567890",
+		},
 	}
 
 	err := InsertUser(testUser)
 	require.NoError(t, err)
-	err = DeleteUser("01d85ea5-0c1f-457c-b1f5-04f4e48b54b6")
+
+	// Query to get the generated userId
+	user, err := QueryUser("DanielGalliego")
+	require.NoError(t, err)
+
+	err = DeleteUser(user.Id)
 	require.NoError(t, err)
 
 }

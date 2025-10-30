@@ -13,10 +13,11 @@ type User struct {
 
 // UserDetail contains private user information
 type UserDetail struct {
-	Address       string `json:"address"`
-	FirstName     string `json:"first_name"`
-	LastName      string `json:"last_name"`
-	ContactNumber string `json:"contact_number"`
+	Address       string    `json:"address"`
+	FirstName     string    `json:"first_name"`
+	LastName      string    `json:"last_name"`
+	ContactNumber string    `json:"contact_number"`
+	CreatedDate   time.Time `json:"created_date"`
 }
 
 type Item struct {
