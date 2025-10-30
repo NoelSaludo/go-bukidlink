@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -150,38 +149,116 @@ func TestUsersItemQuery(t *testing.T) {
 	assert.NotEmpty(t, items)
 }
 
-func TestGetTransaction(t *testing.T) {
+func TestOrderWorkflow(t *testing.T) {
 	_ = SetupDatabase()
 
-	transaction, err := QueryOrder("462c9fb9-5c29-4b78-abc7-c263e77c2cd0")
+	// 1. Create a new order
+	newOrder := Order{
+		UserId:     "d30869ec-fb97-46d8-85a3-82608c01f803", // JohnDoe
+		OrderDate:  time.Now(),
+		Status:     "Packaging",
+		TotalPrice: 5.0, // 2 * 1.0 (Banana) + 1 * 3.0 (Rice)
+		Items: []OrderItem{
+			{
+				ItemId:          "a3e1b9f2-7d94-4d3a-9b4a-111111111111", // Banana
+				Quantity:        2,
+				PriceAtPurchase: 1.0,
+			},
+			{
+				ItemId:          "c9d3e8a1-55b2-4f66-a123-333333333333", // Rice
+				Quantity:        1,
+				PriceAtPurchase: 3.0,
+			},
+		},
+	}
 
-	fmt.Printf("Date: %s", transaction.CreatedDate)
+	orderId, err := InsertOrder(newOrder)
 	require.NoError(t, err)
-	assert.NotEmpty(t, transaction)
+	require.NotEmpty(t, orderId)
+
+	// 2. Query the user's orders and verify the new order is there
+	orders, err := QueryUsersOrders("d30869ec-fb97-46d8-85a3-82608c01f803")
+	require.NoError(t, err)
+	assert.NotEmpty(t, orders)
+
+	var foundOrder Order
+	for _, o := range orders {
+		if o.Id == orderId {
+			foundOrder = o
+			break
+		}
+	}
+	require.NotEmpty(t, foundOrder.Id, "Could not find inserted order")
+
+	assert.Equal(t, "Packaging", foundOrder.Status)
+	assert.Equal(t, 5.0, foundOrder.TotalPrice)
+	assert.Len(t, foundOrder.Items, 2)
+
+	// 3. Update the order status
+	err = UpdateOrderStatus(orderId, "Shipping")
+	require.NoError(t, err)
+
+	// 4. Query again to verify the status update
+	orders, err = QueryUsersOrders("d30869ec-fb97-46d8-85a3-82608c01f803")
+	require.NoError(t, err)
+
+	for _, o := range orders {
+		if o.Id == orderId {
+			foundOrder = o
+			break
+		}
+	}
+	require.NotEmpty(t, foundOrder.Id, "Could not find inserted order after update")
+	assert.Equal(t, "Shipping", foundOrder.Status)
 }
 
-func TestInsertandDeleteTransaction(t *testing.T) {
+func TestCartWorkflow(t *testing.T) {
 	_ = SetupDatabase()
 
-	data := Order{
-		Id:          "d46b0691-9fad-4be1-9ba4-52f643333b37",
-		UserId:      "c6554794-849f-4338-87c5-6db2e2f76514",
-		ItemId:      "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
-		Amount:      20,
-		CreatedDate: time.Now(),
+	userID := "d30869ec-fb97-46d8-85a3-82608c01f803" // JohnDoe
+	bananaID := "a3e1b9f2-7d94-4d3a-9b4a-111111111111"
+	tomatoID := "b7f2c6d4-1aeb-4f5b-9c2b-222222222222"
+
+	// 1. Get cart for a user (should create one if it doesn't exist)
+	cart, err := GetCartByUserID(userID)
+	require.NoError(t, err)
+	assert.Equal(t, userID, cart.UserId)
+
+	// 2. Add items to the cart
+	err = AddItemToCart(cart.Id, bananaID, 2) // Add 2 bananas
+	require.NoError(t, err)
+
+	err = AddItemToCart(cart.Id, tomatoID, 3) // Add 3 tomatoes
+	require.NoError(t, err)
+
+	err = AddItemToCart(cart.Id, bananaID, 1) // Add 1 more banana
+	require.NoError(t, err)
+
+	// 3. Verify cart contents
+	cart, err = GetCartByUserID(userID)
+	require.NoError(t, err)
+	assert.Len(t, cart.Items, 2)
+
+	var bananaItem CartItem
+	var tomatoItem CartItem
+	for _, item := range cart.Items {
+		if item.ItemId == bananaID {
+			bananaItem = item
+		} else if item.ItemId == tomatoID {
+			tomatoItem = item
+		}
 	}
-	err := InsertOrder(data)
+
+	assert.Equal(t, 3, bananaItem.Quantity, "Should have 3 bananas in total")
+	assert.Equal(t, 3, tomatoItem.Quantity, "Should have 3 tomatoes")
+
+	// 4. Remove an item from the cart
+	err = RemoveItemFromCart(tomatoItem.Id)
 	require.NoError(t, err)
 
-	err = UpdateOrderStatus(data.Id, "Shipping")
+	// 5. Verify item removal
+	cart, err = GetCartByUserID(userID)
 	require.NoError(t, err)
-
-	err = UpdateOrderStatus(data.Id, "Recieved")
-	require.NoError(t, err)
-
-	err = UpdateOrderStatus(data.Id, "Packaging")
-	require.NoError(t, err)
-
-	err = DeleteOrder("d46b0691-9fad-4be1-9ba4-52f643333b37")
-	require.NoError(t, err)
+	assert.Len(t, cart.Items, 1)
+	assert.Equal(t, bananaID, cart.Items[0].ItemId)
 }

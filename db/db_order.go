@@ -2,91 +2,102 @@ package db
 
 import (
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
-func QueryOrder(id string) (Order, error) {
-	var order Order
+// QueryUsersOrders retrieves all orders for a given user, including their associated items.
+func QueryUsersOrders(userId string) ([]Order, error) {
+	var orders []Order
 
 	query := `
-	SELECT user_id, item_id, amount, status, created_date 
-	FROM "Order" 
-	WHERE id = $1
+	SELECT id, user_id, order_date, total_price, status
+	FROM "Order"
+	WHERE user_id = $1
 	`
 
-	row := db.QueryRow(query, id)
-	if err := row.Err(); err != nil {
-		return order, err
-	}
-
-	err := row.Scan(
-		&order.UserId,
-		&order.ItemId,
-		&order.Amount,
-		&order.Status,
-		&order.CreatedDate,
-	)
-
-	order.Id = id
-
+	rows, err := db.Query(query, userId)
 	if err != nil {
-		return order, err
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order Order
+		err := rows.Scan(&order.Id, &order.UserId, &order.OrderDate, &order.TotalPrice, &order.Status)
+		if err != nil {
+			return nil, err
+		}
+
+		// For each order, get its items
+		itemQuery := `
+		SELECT id, order_id, item_id, quantity, price_at_purchase
+		FROM "OrderItem"
+		WHERE order_id = $1
+		`
+		itemRows, err := db.Query(itemQuery, order.Id)
+		if err != nil {
+			return nil, err
+		}
+		defer itemRows.Close()
+
+		for itemRows.Next() {
+			var item OrderItem
+			err := itemRows.Scan(&item.Id, &item.OrderId, &item.ItemId, &item.Quantity, &item.PriceAtPurchase)
+			if err != nil {
+				return nil, err
+			}
+			order.Items = append(order.Items, item)
+		}
+
+		orders = append(orders, order)
 	}
 
-	return order, nil
+	return orders, nil
 }
 
-func InsertOrder(order Order) error {
-	var err error
-
+// InsertOrder creates a new order and its associated items in a single transaction.
+func InsertOrder(order Order) (string, error) {
 	tx, err := db.Begin()
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	query := `
-	INSERT INTO "Order"
-	(id, user_id, item_id, amount, created_date)	
+	// Insert into Order table
+	orderId := uuid.New().String()
+	orderQuery := `
+	INSERT INTO "Order" (id, user_id, order_date, total_price, status)
 	VALUES ($1, $2, $3, $4, $5)
 	`
-	stmt, err := tx.Prepare(query)
+	_, err = tx.Exec(orderQuery, orderId, order.UserId, order.OrderDate, order.TotalPrice, order.Status)
 	if err != nil {
-		return err
+		tx.Rollback()
+		return "", err
 	}
 
-	_, err = tx.Stmt(stmt).Exec(order.Id, order.UserId, order.ItemId, order.Amount,
-		order.CreatedDate)
+	// Insert into OrderItem table
+	itemStmt, err := tx.Prepare(`
+	INSERT INTO "OrderItem" (id, order_id, item_id, quantity, price_at_purchase)
+	VALUES ($1, $2, $3, $4, $5)
+	`)
 	if err != nil {
-		if rberr := tx.Rollback(); rberr != nil {
-			return rberr
+		tx.Rollback()
+		return "", err
+	}
+	defer itemStmt.Close()
+
+	for _, item := range order.Items {
+		_, err := itemStmt.Exec(uuid.New().String(), orderId, item.ItemId, item.Quantity, item.PriceAtPurchase)
+		if err != nil {
+			tx.Rollback()
+			return "", err
 		}
-		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-	return nil
+	return orderId, tx.Commit()
 }
 
-func DeleteOrder(id string) error {
-	var err error
-
-	query := `
-	DELETE FROM "Order"	
-	WHERE id = $1
-	`
-
-	_, err = db.Exec(query, id)
-	if err != nil {
-		return err
-	}
-
-	return err
-}
-
-// status includes: "Packaging", "Shipping", "Recieved"
-// legacy includes: "Paid", "Rated"
+// UpdateOrderStatus updates the status of an existing order.
 func UpdateOrderStatus(id string, status string) error {
 	query := `
 	UPDATE "Order"

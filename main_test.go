@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -134,79 +133,137 @@ func TestGetItemById(t *testing.T) {
 	assert.NotEmpty(t, item.Rating)
 }
 
-func TestGetAndUpdateOrder(t *testing.T) {
+func TestOrderAPIWorkflow(t *testing.T) {
 	server := setupServer()
+	userID := "d30869ec-fb97-46d8-85a3-82608c01f803" // JohnDoe
 
-	req, _ := http.NewRequest(http.MethodGet, "/order?id=462c9fb9-5c29-4b78-abc7-c263e77c2cd0", nil)
-	w := httptest.NewRecorder()
-
-	server.ServeHTTP(w, req)
-
-	var order db.Order
-	if err := json.Unmarshal(w.Body.Bytes(), &order); err != nil {
-		log.Fatal(err)
+	// 1. POST /order
+	newOrder := db.Order{
+		UserId:     userID,
+		OrderDate:  time.Now(),
+		Status:     "Packaging",
+		TotalPrice: 5.0,
+		Items: []db.OrderItem{
+			{ItemId: "a3e1b9f2-7d94-4d3a-9b4a-111111111111", Quantity: 2, PriceAtPurchase: 1.0},
+			{ItemId: "c9d3e8a1-55b2-4f66-a123-333333333333", Quantity: 1, PriceAtPurchase: 3.0},
+		},
 	}
-
-	if w.Code != http.StatusOK {
-		fmt.Println("Response Body:", w.Body.String())
-	}
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.NotEmpty(t, order)
-
-	// update status
-	req, _ = http.NewRequest(http.MethodPost, "/order/status?id=462c9fb9-5c29-4b78-abc7-c263e77c2cd0&status=Shipping", nil)
-	w = httptest.NewRecorder()
-
-	server.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		fmt.Println("Response Body:", w.Body.String())
-	}
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	// handle non-existing order
-	req, _ = http.NewRequest(http.MethodGet, "/order?id=non-existing-id", nil)
-	w = httptest.NewRecorder()
-
-	server.ServeHTTP(w, req)
-
-	if w.Code != http.StatusInternalServerError {
-		fmt.Println("Response Body:", w.Body.String())
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-}
-
-func TestPostandDeleteOrder(t *testing.T) {
-	server := setupServer()
-	data := db.Order{
-		Id:          "test-order-123",
-		UserId:      "d30869ec-fb97-46d8-85a3-82608c01f803",
-		ItemId:      "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
-		Amount:      2,
-		Status:      "Packaging",
-		CreatedDate: time.Now(),
-	}
-
-	jData, _ := json.Marshal(data)
-
+	jData, _ := json.Marshal(newOrder)
 	req, _ := http.NewRequest(http.MethodPost, "/order", bytes.NewBuffer(jData))
 	req.Header.Set("Content-Type", "application/json")
-
 	w := httptest.NewRecorder()
 	server.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		fmt.Println("Response Body:", w.Body.String())
-	}
+	assert.Equal(t, http.StatusCreated, w.Code)
+	var resp map[string]string
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	orderID, ok := resp["order_id"]
+	require.True(t, ok, "order_id not found in response")
 
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	// Now delete the order
-	req, _ = http.NewRequest(http.MethodDelete, "/order?id=test-order-123", nil)
+	// 2. GET /order/:user_id
+	req, _ = http.NewRequest(http.MethodGet, "/order/"+userID, nil)
 	w = httptest.NewRecorder()
 	server.ServeHTTP(w, req)
-
 	assert.Equal(t, http.StatusOK, w.Code)
+	var orders []db.Order
+	json.Unmarshal(w.Body.Bytes(), &orders)
+	assert.NotEmpty(t, orders)
+
+	// 3. POST /order/status
+	req, _ = http.NewRequest(http.MethodPost, "/order/status?id="+orderID+"&status=Shipping", nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestCartAPIWorkflow(t *testing.T) {
+	server := setupServer()
+	userID := "c6554794-849f-4338-87c5-6db2e2f76514" // DanielGaliego
+	bananaID := "a3e1b9f2-7d94-4d3a-9b4a-111111111111"
+	tomatoID := "b7f2c6d4-1aeb-4f5b-9c2b-222222222222"
+
+	// Helper function to clear the cart
+	clearCart := func() {
+		req, _ := http.NewRequest(http.MethodGet, "/cart/"+userID, nil)
+		w := httptest.NewRecorder()
+		server.ServeHTTP(w, req)
+		var cart db.Cart
+		json.Unmarshal(w.Body.Bytes(), &cart)
+		for _, item := range cart.Items {
+			req, _ := http.NewRequest(http.MethodDelete, "/cart/item/"+item.Id, nil)
+			w := httptest.NewRecorder()
+			server.ServeHTTP(w, req)
+		}
+	}
+
+	// 1. Setup: Ensure the cart is empty before starting
+	clearCart()
+
+	// Defer cleanup for after the test runs
+	defer clearCart()
+
+	// 2. GET /cart/:user_id - This will create a cart if one doesn't exist
+	req, _ := http.NewRequest(http.MethodGet, "/cart/"+userID, nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var cart db.Cart
+	json.Unmarshal(w.Body.Bytes(), &cart)
+	require.NotEmpty(t, cart.Id, "Cart ID should not be empty")
+	assert.Empty(t, cart.Items, "Cart should be empty at the start")
+
+	// 3. POST /cart/item - Add a banana
+	addItemReq1 := AddToCartRequest{CartID: cart.Id, ItemID: bananaID, Quantity: 2}
+	jData1, _ := json.Marshal(addItemReq1)
+	req, _ = http.NewRequest(http.MethodPost, "/cart/item", bytes.NewBuffer(jData1))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// 4. GET /cart/:user_id again to verify one item
+	req, _ = http.NewRequest(http.MethodGet, "/cart/"+userID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	json.Unmarshal(w.Body.Bytes(), &cart)
+	assert.Len(t, cart.Items, 1, "Cart should have 1 item type after adding banana")
+	assert.Equal(t, 2, cart.Items[0].Quantity)
+	assert.Equal(t, bananaID, cart.Items[0].ItemId)
+
+	// 5. POST /cart/item - Add a tomato
+	addItemReq2 := AddToCartRequest{CartID: cart.Id, ItemID: tomatoID, Quantity: 3}
+	jData2, _ := json.Marshal(addItemReq2)
+	req, _ = http.NewRequest(http.MethodPost, "/cart/item", bytes.NewBuffer(jData2))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// 6. GET /cart/:user_id to verify two items
+	req, _ = http.NewRequest(http.MethodGet, "/cart/"+userID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	json.Unmarshal(w.Body.Bytes(), &cart)
+	assert.Len(t, cart.Items, 2, "Cart should have 2 item types after adding tomato")
+
+	// 7. DELETE /cart/item/:cart_item_id - Remove the banana
+	var bananaCartItemID string
+	for _, item := range cart.Items {
+		if item.ItemId == bananaID {
+			bananaCartItemID = item.Id
+			break
+		}
+	}
+	req, _ = http.NewRequest(http.MethodDelete, "/cart/item/"+bananaCartItemID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// 8. GET /cart/:user_id to verify deletion
+	req, _ = http.NewRequest(http.MethodGet, "/cart/"+userID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	json.Unmarshal(w.Body.Bytes(), &cart)
+	assert.Len(t, cart.Items, 1, "Cart should have 1 item type after deleting banana")
+	assert.Equal(t, tomatoID, cart.Items[0].ItemId, "The remaining item should be the tomato")
 }

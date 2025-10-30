@@ -29,8 +29,8 @@ func QueryUsersItem(userid string) ([]Item, error) {
        i.category,
        i.amount
 		FROM "User" u
-		JOIN "UsersItem" ui ON u.id = ui.userid
-		JOIN "Item" i ON i.id = ui.itemid
+		JOIN "UsersItem" ui ON u.id = ui.user_id
+		JOIN "Item" i ON i.id = ui.item_id
 		WHERE u.id = $1; `
 
 	rows, err := db.Query(query, userid)

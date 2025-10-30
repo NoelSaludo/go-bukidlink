@@ -32,10 +32,14 @@ func setupServer() *gin.Engine {
 	commentG.POST("/:productID")
 
 	orderG := r.Group("/order")
-	orderG.GET("", getOrderHandler)
+	orderG.GET("/:user_id", getUsersOrdersHandler) // Changed from getOrderHandler
 	orderG.POST("", postOrderHandler)
-	orderG.DELETE("", deleteOrderHandler)
 	orderG.POST("/status", updateOrderStatusHandler)
+
+	cartG := r.Group("/cart")
+	cartG.GET("/:user_id", getCartHandler)
+	cartG.POST("/item", addCartItemHandler)
+	cartG.DELETE("/item/:cart_item_id", removeCartItemHandler)
 
 	db.SetupDatabase()
 
@@ -53,16 +57,17 @@ func updateOrderStatusHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "order status updated"})
 }
-func getOrderHandler(c *gin.Context) {
-	var id string = c.Query("id")
 
-	order, err := db.QueryOrder(id)
+func getUsersOrdersHandler(c *gin.Context) {
+	userId := c.Param("user_id")
+
+	orders, err := db.QueryUsersOrders(userId)
 	if err != nil {
 		retInternalServErr(err, c)
 		return
 	}
 
-	c.JSON(http.StatusOK, order)
+	c.JSON(http.StatusOK, orders)
 }
 
 func postOrderHandler(c *gin.Context) {
@@ -72,24 +77,49 @@ func postOrderHandler(c *gin.Context) {
 		return
 	}
 
-	if err := db.InsertOrder(order); err != nil {
+	orderId, err := db.InsertOrder(order)
+	if err != nil {
 		retInternalServErr(err, c)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "order created"})
+	c.JSON(http.StatusCreated, gin.H{"status": "order created", "order_id": orderId})
 }
 
-func deleteOrderHandler(c *gin.Context) {
-	var id string = c.Query("id")
+func getCartHandler(c *gin.Context) {
+	userId := c.Param("user_id")
+	cart, err := db.GetCartByUserID(userId)
+	if err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+	c.JSON(http.StatusOK, cart)
+}
 
-	if err := db.DeleteOrder(id); err != nil {
+func addCartItemHandler(c *gin.Context) {
+	var req AddToCartRequest
+	if err := c.BindJSON(&req); err != nil {
+		retBadReqErr(err, c)
+		return
+	}
+
+	if err := db.AddItemToCart(req.CartID, req.ItemID, req.Quantity); err != nil {
 		retInternalServErr(err, c)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "order deleted"})
+	c.JSON(http.StatusOK, gin.H{"status": "item added to cart"})
 }
+
+func removeCartItemHandler(c *gin.Context) {
+	cartItemId := c.Param("cart_item_id")
+	if err := db.RemoveItemFromCart(cartItemId); err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "item removed from cart"})
+}
+
 func getCommentByItemID(c *gin.Context) {
 	var itemid string = c.Param("itemId")
 
