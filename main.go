@@ -33,7 +33,7 @@ func setupServer() *gin.Engine {
 	orderG := r.Group("/order")
 	orderG.GET("/:user_id", getUsersOrdersHandler) // Changed from getOrderHandler
 	orderG.POST("", postOrderHandler)
-	orderG.POST("/status", updateOrderStatusHandler)
+	orderG.PATCH("/status", updateOrderStatusHandler)
 	orderG.DELETE("", deleteOrderHandler)
 
 	cartG := r.Group("/cart")

@@ -169,8 +169,8 @@ func TestOrderAPIWorkflow(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &orders)
 	assert.NotEmpty(t, orders)
 
-	// 3. POST /order/status
-	req, _ = http.NewRequest(http.MethodPost, "/order/status?id="+orderID+"&status=Shipping", nil)
+	// 3. PATCH /order/status
+	req, _ = http.NewRequest(http.MethodPatch, "/order/status?id="+orderID+"&status=Shipping", nil)
 	w = httptest.NewRecorder()
 	server.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)

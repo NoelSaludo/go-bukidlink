@@ -151,10 +151,16 @@ curl http://localhost:8080/user/JohnDoe
 ```json
 {
     "id": "d30869ec-fb97-46d8-85a3-82608c01f803",
+    "email": "JohnDoe@example.com",
     "username": "JohnDoe",
     "password": "P@ssw0rd",
-    "email": "JohnDoe@example.com",
-    "address": "So. Pinamuntasan, Brgy. Aga, Nasugbu, Batangas"
+    "details": {
+        "address": "So. Pinamuntasan, Brgy. Aga, Nasugbu, Batangas",
+        "first_name": "John",
+        "last_name": "Doe",
+        "contact_number": "+639123456789",
+        "created_date": "2023-10-27T10:00:00Z"
+    }
 }
 ```
 
@@ -266,7 +272,7 @@ curl -X POST http://localhost:8080/order \
 
 **Response**: `{"status":"order created","order_id":"<NEW_ORDER_UUID>"}`
 
-### POST /order/status
+### PATCH /order/status
 **Purpose**: Update the status of an existing order.
 
 **Query Parameters**:
@@ -277,7 +283,7 @@ curl -X POST http://localhost:8080/order \
 
 **Example**:
 ```bash
-curl -X POST "http://localhost:8080/order/status?id=11111111-1111-1111-1111-111111111111&status=Shipping"
+curl -X PATCH "http://localhost:8080/order/status?id=11111111-1111-1111-1111-111111111111&status=Shipping"
 ```
 
 **Response**: `{"status":"order status updated"}`
