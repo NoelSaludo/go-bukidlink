@@ -26,7 +26,7 @@ docs/usage_dart.md
 ## Server behavior
 
 - The server initializes the database with `db.SetupDatabase()` during startup.
-- Routes are implemented in `main.go`. This document lists the currently implemented endpoints and how to use them.
+- Routes are implemented in `main.go`, `itemroutes.go`, and `userroutes.go`. This document lists the currently implemented endpoints and how to use them.
 
 ---
 
@@ -34,151 +34,191 @@ docs/usage_dart.md
 
 ### GET /ping
 - Purpose: Health check.
-- Request: none
 - Response:
   - Status: 200 OK
-  - Body: JSON
-
-Example response:
-```json
-{"message":"pong"}
-```
-
-Curl example:
-```bash
-curl -i http://localhost:8080/ping
-```
+  - Body: `{"message":"pong"}`
 
 ---
+
+## Item Routes
 
 ### GET /item/:block
-- Purpose: Return a page/block of items (the tests call `/item/0`).
-- Path parameters:
-  - `:block` (string/int) — page or block index. The tests use `0` to request the first block.
-- Request body: none
-- Response:
-  - Status: 200 OK on success
-  - Body: JSON array of Item objects
+- Purpose: Return a page/block of items.
+- Response: Array of `Item` objects.
 
-Item object shape (from `db/models.go`):
+Example Response:
 ```json
-{
-  "id": "<uuid>",
-  "name": "<string>",
-  "description": "<string>",
-  "amount": <int>,
-  "costPKilo": <float>,
-  "category": "<fruits|vegetables|grains|livestock|dairy|others>",
-  "rating": <float> // if present from DB
-}
+[
+    {
+        "id": "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
+        "name": "Banana",
+        "description": "Ripe Cavendish bananas, sweet and soft",
+        "amount": 120,
+        "costPKilo": 0.8,
+        "category": "fruits",
+        "rating": 0
+    }
+]
 ```
-
-Curl example (first block):
-```bash
-curl -i http://localhost:8080/item/0
-```
-
----
 
 ### GET /item/category/:category
 - Purpose: Return items matching a category.
-- Path parameters:
-  - `:category` — one of: `fruits`, `vegetables`, `grains`, `livestock`, `dairy`, `others`.
-- Request body: none
-- Response:
-  - Status: 200 OK and JSON array of `Item` objects for a valid category (the tests assert non-empty arrays for each valid category).
-  - Status: 500 Internal Server Error if the category is invalid (see tests: category `nothing` returns 500).
+- Response: Array of `Item` objects.
 
-Curl example:
-```bash
-curl -i http://localhost:8080/item/category/fruits
+Example Response (for `/item/category/fruits`):
+```json
+[
+    {
+        "id": "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
+        "name": "Banana",
+        "description": "Ripe Cavendish bananas, sweet and soft",
+        "amount": 120,
+        "costPKilo": 0.8,
+        "category": "fruits",
+        "rating": 0
+    }
+]
 ```
 
-Note: The tests expect each returned item's `category` field to equal the requested category.
+### GET /item
+- Purpose: Retrieve a single item by its ID.
+- Response: A single `Item` object.
+
+Example Response:
+```json
+{
+    "id": "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
+    "name": "Banana",
+    "description": "Ripe Cavendish bananas, sweet and soft",
+    "amount": 120,
+    "costPKilo": 0.8,
+    "category": "fruits",
+    "rating": 0
+}
+```
 
 ---
+
+## User Routes
 
 ### GET /user/:username
 - Purpose: Retrieve a user by username.
-- Path parameters:
-  - `:username` — the user's username (e.g. `JohnDoe`).
-- Request body: none
-- Response:
-  - Status: 200 OK on success
-  - Body: JSON representation of a `User` object
+- Response: A single `User` object.
 
-User object shape (from `db/models.go`):
+Example Response:
 ```json
 {
-  "id": "<uuid>",
-  "username": "<string>",
-  "password": "<string>",
-  "email": "<string>"
+    "id": "d30869ec-fb97-46d8-85a3-82608c01f803",
+    "username": "JohnDoe",
+    "password": "P@ssw0rd",
+    "email": "JohnDoe@example.com",
+    "address": "So. Pinamuntasan, Brgy. Aga, Nasugbu, Batangas"
 }
 ```
-
-Curl example:
-```bash
-curl -i http://localhost:8080/user/JohnDoe
-```
-
----
 
 ### POST /user
 - Purpose: Insert a new user.
-- Request headers:
-  - `Content-Type: application/json`
-- Request body: JSON `User` object. Example:
-```json
-{
-  "id": "01d85ea5-0c1f-457c-b1f5-04f4e48b54b6",
-  "username": "JohnDoe",
-  "password": "password123",
-  "email": "JohnDoe@example.com"
-}
-```
-- Response:
-  - Status: 201 Created (expected when a new user is inserted) OR
-  - Status: 409 Conflict if the user already exists (the tests submit a known user and expect `409`).
-
-Curl example (in tests they expect conflict):
-```bash
-curl -i -X POST -H "Content-Type: application/json" -d '{"id":"01d85ea5-0c1f-457c-b1f5-04f4e48b54b6","username":"JohnDoe","password":"password123","email":"JohnDoe@example.com"}' http://localhost:8080/user
-```
+- Response: `{"message":"Success"}`
 
 ---
+
+## Order Routes
+
+### GET /order/:user_id
+- Purpose: Get all orders for a specific user.
+- Response: JSON array of `Order` objects, with nested `OrderItem`s.
+
+Example Response:
+```json
+[
+    {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "userid": "d30869ec-fb97-46d8-85a3-82608c01f803",
+        "status": "Packaging",
+        "order_date": "2023-10-27T17:07:33.621Z",
+        "total_price": 4,
+        "items": [
+            {
+                "id": "21111111-1111-1111-1111-111111111111",
+                "order_id": "11111111-1111-1111-1111-111111111111",
+                "item_id": "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
+                "quantity": 2,
+                "price_at_purchase": 0.8
+            },
+            {
+                "id": "21111111-1111-1111-1111-222222222222",
+                "order_id": "11111111-1111-1111-1111-111111111111",
+                "item_id": "b7f2c6d4-1aeb-4f5b-9c2b-222222222222",
+                "quantity": 2,
+                "price_at_purchase": 1.2
+            }
+        ]
+    }
+]
+```
+
+### POST /order
+- Purpose: Create a new order.
+- Response: `{"status":"order created","order_id":"<NEW_ORDER_UUID>"}`
+
+### POST /order/status
+- Purpose: Update the status of an order.
+- Response: `{"status":"order status updated"}`
+
+---
+
+## Cart Routes
+
+### GET /cart/:user_id
+- Purpose: Get a user's cart. Creates a new cart if one doesn't exist.
+- Response: JSON `Cart` object with nested `CartItem`s.
+
+Example Response:
+```json
+{
+    "id": "31111111-1111-1111-1111-111111111111",
+    "userid": "c6554794-849f-4338-87c5-6db2e2f76514",
+    "grand_total": 0,
+    "created_at": "2023-10-27T17:10:00.1Z",
+    "items": [
+        {
+            "id": "41111111-1111-1111-1111-111111111111",
+            "cart_id": "31111111-1111-1111-1111-111111111111",
+            "item_id": "c9d3e8a1-55b2-4f66-a123-333333333333",
+            "quantity": 5
+        }
+    ]
+}
+```
+
+### POST /cart/item
+- Purpose: Add an item to a cart.
+- Response: `{"status":"item added to cart"}`
+
+### DELETE /cart/item/:cart_item_id
+- Purpose: Remove an item from a cart.
+- Response: `{"status":"item removed from cart"}`
+
+---
+
+## Comment Routes
 
 ### GET /comment/:itemId
 - Purpose: Return comments for a given item id.
-- Path parameters:
-  - `:itemId` — an item UUID (e.g. `a3e1b9f2-7d94-4d3a-9b4a-111111111111`).
-- Request body: none
-- Response:
-  - Status: 200 OK on success (tests expect non-empty comments for the sample item id above).
-  - Body: JSON array of `Comment` objects
+- Response: Array of `Review` objects.
 
-Comment object shape (from `db/models.go`):
+Example Response:
 ```json
-{
-  "id": <int>,
-  "itemid": <int>,
-  "userid": <int>,
-  "content": "<string>",
-  "rating": <float>
-}
+[
+    {
+        "id": "894169e9-c907-4d89-84c4-3f1542488c9a",
+        "itemid": "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
+        "userid": "6a24dd2b-d441-4b39-ab85-8fa2bd61065e",
+        "content": "Banana very fluffy and has a premium after taste",
+        "rating": 4.9
+    }
+]
 ```
-
-Curl example:
-```bash
-curl -i http://localhost:8080/comment/a3e1b9f2-7d94-4d3a-9b4a-111111111111
-```
-
----
 
 ### POST /comment/:productID
-- Note: `main.go` contains a route registration `commentG.POST("/:productID")` but no handler function is provided. That means the POST route is declared in the router, but the project currently does not implement the handler to accept or create comments. Attempting to call this endpoint will either produce a server error or will not behave as intended until the handler is implemented.
-
-Action item: Implement the handler (e.g. `postCommentHandler(c *gin.Context)`) and register it:
-```go
-commentG.POST("/:productID", postCommentHandler)
-```
+- Note: This route is declared but not implemented.
