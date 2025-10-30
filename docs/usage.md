@@ -33,20 +33,35 @@ docs/usage_dart.md
 ## Routes
 
 ### GET /ping
-- Purpose: Health check.
-- Response:
-  - Status: 200 OK
-  - Body: `{"message":"pong"}`
+**Purpose**: Health check endpoint to verify server is running.
+
+**Response**:
+- Status: `200 OK`
+- Body: `{"message":"pong"}`
+
+**Example**:
+```bash
+curl http://localhost:8080/ping
+```
 
 ---
 
 ## Item Routes
 
 ### GET /item/:block
-- Purpose: Return a page/block of items.
-- Response: Array of `Item` objects.
+**Purpose**: Return a paginated list of items (100 items per block).
 
-Example Response:
+**Parameters**:
+- `:block` (path) - Page number (0-indexed). Block 0 returns items 0-99, block 1 returns items 100-199, etc.
+
+**Response**: Array of `Item` objects with status `200 OK`.
+
+**Example**:
+```bash
+curl http://localhost:8080/item/0
+```
+
+**Response Example**:
 ```json
 [
     {
@@ -62,10 +77,19 @@ Example Response:
 ```
 
 ### GET /item/category/:category
-- Purpose: Return items matching a category.
-- Response: Array of `Item` objects.
+**Purpose**: Return all items in a specific category.
 
-Example Response (for `/item/category/fruits`):
+**Parameters**:
+- `:category` (path) - Category name. Valid values: `fruits`, `vegetables`, `grains`, `livestock`, `dairy`, `others`
+
+**Response**: Array of `Item` objects with status `200 OK`, or `500 Internal Server Error` for invalid categories.
+
+**Example**:
+```bash
+curl http://localhost:8080/item/category/fruits
+```
+
+**Response Example**:
 ```json
 [
     {
@@ -81,10 +105,19 @@ Example Response (for `/item/category/fruits`):
 ```
 
 ### GET /item
-- Purpose: Retrieve a single item by its ID.
-- Response: A single `Item` object.
+**Purpose**: Retrieve a single item by its ID with aggregated rating from reviews.
 
-Example Response:
+**Query Parameters**:
+- `id` - Item UUID
+
+**Response**: Single `Item` object with status `200 OK`, includes average rating from reviews.
+
+**Example**:
+```bash
+curl "http://localhost:8080/item?id=a3e1b9f2-7d94-4d3a-9b4a-111111111111"
+```
+
+**Response Example**:
 ```json
 {
     "id": "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
@@ -102,10 +135,19 @@ Example Response:
 ## User Routes
 
 ### GET /user/:username
-- Purpose: Retrieve a user by username.
-- Response: A single `User` object.
+**Purpose**: Retrieve a user by username, including their details.
 
-Example Response:
+**Parameters**:
+- `:username` (path) - Username string
+
+**Response**: Single `User` object with nested `UserDetail` with status `200 OK`, or `400 Bad Request` if user not found.
+
+**Example**:
+```bash
+curl http://localhost:8080/user/JohnDoe
+```
+
+**Response Example**:
 ```json
 {
     "id": "d30869ec-fb97-46d8-85a3-82608c01f803",
@@ -117,18 +159,52 @@ Example Response:
 ```
 
 ### POST /user
-- Purpose: Insert a new user.
-- Response: `{"message":"Success"}`
+**Purpose**: Create a new user with their details in a single transaction.
+
+**Request Body**: JSON `User` object with optional nested `UserDetail`.
+
+**Response**: 
+- `200 OK` with `{"message":"Success"}` on successful creation
+- `409 Conflict` if user already exists
+- `400 Bad Request` if JSON is malformed
+
+**Example**:
+```bash
+curl -X POST http://localhost:8080/user \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "NewUser",
+    "password": "securepass123",
+    "email": "newuser@example.com",
+    "details": {
+      "first_name": "John",
+      "last_name": "Smith",
+      "address": "123 Main St",
+      "contact_number": "+1234567890"
+    }
+  }'
+```
+
+**Response**: `{"message":"Success"}`
 
 ---
 
 ## Order Routes
 
 ### GET /order/:user_id
-- Purpose: Get all orders for a specific user.
-- Response: JSON array of `Order` objects, with nested `OrderItem`s.
+**Purpose**: Get all orders for a specific user, including all order items.
 
-Example Response:
+**Parameters**:
+- `:user_id` (path) - User UUID
+
+**Response**: JSON array of `Order` objects with nested `OrderItem` arrays, status `200 OK`.
+
+**Example**:
+```bash
+curl http://localhost:8080/order/d30869ec-fb97-46d8-85a3-82608c01f803
+```
+
+**Response Example**:
 ```json
 [
     {
@@ -158,22 +234,87 @@ Example Response:
 ```
 
 ### POST /order
-- Purpose: Create a new order.
-- Response: `{"status":"order created","order_id":"<NEW_ORDER_UUID>"}`
+**Purpose**: Create a new order with multiple items in a single transaction.
+
+**Request Body**: JSON `Order` object with nested `OrderItem` array. The server generates UUIDs for the order and items.
+
+**Response**: `201 Created` with `{"status":"order created","order_id":"<NEW_ORDER_UUID>"}`, or `400 Bad Request`/`500 Internal Server Error` on failure.
+
+**Example**:
+```bash
+curl -X POST http://localhost:8080/order \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userid": "d30869ec-fb97-46d8-85a3-82608c01f803",
+    "status": "Packaging",
+    "order_date": "2024-10-30T10:00:00Z",
+    "total_price": 5.0,
+    "items": [
+      {
+        "item_id": "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
+        "quantity": 2,
+        "price_at_purchase": 0.8
+      },
+      {
+        "item_id": "c9d3e8a1-55b2-4f66-a123-333333333333",
+        "quantity": 1,
+        "price_at_purchase": 3.0
+      }
+    ]
+  }'
+```
+
+**Response**: `{"status":"order created","order_id":"<NEW_ORDER_UUID>"}`
 
 ### POST /order/status
-- Purpose: Update the status of an order.
-- Response: `{"status":"order status updated"}`
+**Purpose**: Update the status of an existing order.
+
+**Query Parameters**:
+- `id` - Order UUID
+- `status` - New status string (e.g., "Packaging", "Shipping", "Delivered")
+
+**Response**: `200 OK` with `{"status":"order status updated"}`, or `500 Internal Server Error` on failure.
+
+**Example**:
+```bash
+curl -X POST "http://localhost:8080/order/status?id=11111111-1111-1111-1111-111111111111&status=Shipping"
+```
+
+**Response**: `{"status":"order status updated"}`
+
+### DELETE /order
+**Purpose**: Delete an order and all its associated items in a transaction.
+
+**Query Parameters**:
+- `order_id` - Order UUID to delete
+
+**Response**: `200 OK` with `{"status":"order deleted"}`, or `500 Internal Server Error` on failure.
+
+**Example**:
+```bash
+curl -X DELETE "http://localhost:8080/order?order_id=11111111-1111-1111-1111-111111111111"
+```
+
+**Response**: `{"status":"order deleted"}`
 
 ---
 
 ## Cart Routes
 
 ### GET /cart/:user_id
-- Purpose: Get a user's cart. Creates a new cart if one doesn't exist.
-- Response: JSON `Cart` object with nested `CartItem`s.
+**Purpose**: Get a user's cart with all items. Automatically creates a new empty cart if one doesn't exist.
 
-Example Response:
+**Parameters**:
+- `:user_id` (path) - User UUID
+
+**Response**: JSON `Cart` object with nested `CartItem` array, status `200 OK`.
+
+**Example**:
+```bash
+curl http://localhost:8080/cart/c6554794-849f-4338-87c5-6db2e2f76514
+```
+
+**Response Example**:
 ```json
 {
     "id": "31111111-1111-1111-1111-111111111111",
@@ -192,22 +333,58 @@ Example Response:
 ```
 
 ### POST /cart/item
-- Purpose: Add an item to a cart.
-- Response: `{"status":"item added to cart"}`
+**Purpose**: Add an item to a cart or update quantity if item already exists.
+
+**Request Body**: JSON object with `cart_id`, `item_id`, and `quantity`.
+
+**Response**: `200 OK` with `{"status":"item added to cart"}`, or `400 Bad Request`/`500 Internal Server Error` on failure.
+
+**Example**:
+```bash
+curl -X POST http://localhost:8080/cart/item \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cart_id": "31111111-1111-1111-1111-111111111111",
+    "item_id": "a3e1b9f2-7d94-4d3a-9b4a-111111111111",
+    "quantity": 3
+  }'
+```
+
+**Response**: `{"status":"item added to cart"}`
 
 ### DELETE /cart/item/:cart_item_id
-- Purpose: Remove an item from a cart.
-- Response: `{"status":"item removed from cart"}`
+**Purpose**: Remove a specific item from a cart.
+
+**Parameters**:
+- `:cart_item_id` (path) - CartItem UUID (not the Item ID)
+
+**Response**: `200 OK` with `{"status":"item removed from cart"}`, or `500 Internal Server Error` on failure.
+
+**Example**:
+```bash
+curl -X DELETE http://localhost:8080/cart/item/41111111-1111-1111-1111-111111111111
+```
+
+**Response**: `{"status":"item removed from cart"}`
 
 ---
 
-## Comment Routes
+## Review Routes
 
-### GET /comment/:itemId
-- Purpose: Return comments for a given item id.
-- Response: Array of `Review` objects.
+### GET /review/:itemId
+**Purpose**: Get all reviews/comments for a specific item.
 
-Example Response:
+**Parameters**:
+- `:itemId` (path) - Item UUID
+
+**Response**: JSON array of `Review` objects with status `200 OK`.
+
+**Example**:
+```bash
+curl http://localhost:8080/review/a3e1b9f2-7d94-4d3a-9b4a-111111111111
+```
+
+**Response Example**:
 ```json
 [
     {
@@ -220,5 +397,28 @@ Example Response:
 ]
 ```
 
-### POST /comment/:productID
-- Note: This route is declared but not implemented.
+---
+
+## Notes
+
+### Error Responses
+All endpoints may return error responses with appropriate HTTP status codes:
+- `400 Bad Request` - Malformed JSON or missing required parameters
+- `404 Not Found` - Resource not found
+- `409 Conflict` - Resource already exists (e.g., duplicate user)
+- `500 Internal Server Error` - Database errors or server issues
+
+Error responses follow this format:
+```json
+{"error": "error description"}
+```
+
+### UUIDs
+All entity IDs use UUID v4 format. When creating resources, the server generates UUIDs automatically - you don't need to provide them in POST requests (except for references to existing resources like `user_id` or `item_id`).
+
+### Testing
+Test data includes specific UUIDs that can be used for manual testing:
+- Test user "JohnDoe": `d30869ec-fb97-46d8-85a3-82608c01f803`
+- Test user "DanielGaliego": `c6554794-849f-4338-87c5-6db2e2f76514`
+- Test item "Banana": `a3e1b9f2-7d94-4d3a-9b4a-111111111111`
+- Test item "Tomato": `b7f2c6d4-1aeb-4f5b-9c2b-222222222222`
