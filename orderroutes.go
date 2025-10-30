@@ -46,3 +46,14 @@ func postOrderHandler(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"status": "order created", "order_id": orderId})
 }
+
+func deleteOrderHandler(c *gin.Context) {
+	orderId := c.Query("order_id")
+
+	if err := db.DeleteOrder(orderId); err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "order deleted"})
+}

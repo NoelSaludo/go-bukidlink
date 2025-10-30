@@ -102,7 +102,7 @@ func TestGetItemsByCategory(t *testing.T) {
 func TestGetComments(t *testing.T) {
 	s := setupServer()
 
-	req, _ := http.NewRequest(http.MethodGet, "/comment/a3e1b9f2-7d94-4d3a-9b4a-111111111111", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/review/a3e1b9f2-7d94-4d3a-9b4a-111111111111", nil)
 	w := httptest.NewRecorder()
 
 	s.ServeHTTP(w, req)
@@ -174,6 +174,44 @@ func TestOrderAPIWorkflow(t *testing.T) {
 	w = httptest.NewRecorder()
 	server.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
+
+	// 4. GET /order/:user_id again to verify status update
+	req, _ = http.NewRequest(http.MethodGet, "/order/"+userID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	json.Unmarshal(w.Body.Bytes(), &orders)
+
+	var updatedOrder db.Order
+	for _, o := range orders {
+		if o.Id == orderID {
+			updatedOrder = o
+			break
+		}
+	}
+	assert.Equal(t, "Shipping", updatedOrder.Status)
+
+	// 5. DELETE /order
+	req, _ = http.NewRequest(http.MethodDelete, "/order?order_id="+orderID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// 6. GET /order/:user_id to verify deletion
+	req, _ = http.NewRequest(http.MethodGet, "/order/"+userID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	json.Unmarshal(w.Body.Bytes(), &orders)
+
+	var deletedOrder db.Order
+	for _, o := range orders {
+		if o.Id == orderID {
+			deletedOrder = o
+			break
+		}
+	}
+	assert.Empty(t, deletedOrder.Id, "Deleted order should not be found")
 }
 
 func TestCartAPIWorkflow(t *testing.T) {

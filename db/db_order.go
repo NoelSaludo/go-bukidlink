@@ -121,3 +121,40 @@ func UpdateOrderStatus(id string, status string) error {
 
 	return nil
 }
+
+// DeleteOrder deletes an order and its associated items in a transaction.
+func DeleteOrder(orderId string) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// 1. Delete all order items first
+	deleteItemsQuery := `DELETE FROM "OrderItem" WHERE order_id = $1`
+	_, err = tx.Exec(deleteItemsQuery, orderId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 2. Delete the order
+	deleteOrderQuery := `DELETE FROM "Order" WHERE id = $1`
+	result, err := tx.Exec(deleteOrderQuery, orderId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if rowsAffected == 0 {
+		tx.Rollback()
+		return sql.ErrNoRows
+	}
+
+	return tx.Commit()
+}

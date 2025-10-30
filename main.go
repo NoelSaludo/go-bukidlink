@@ -34,6 +34,7 @@ func setupServer() *gin.Engine {
 	orderG.GET("/:user_id", getUsersOrdersHandler) // Changed from getOrderHandler
 	orderG.POST("", postOrderHandler)
 	orderG.POST("/status", updateOrderStatusHandler)
+	orderG.DELETE("", deleteOrderHandler)
 
 	cartG := r.Group("/cart")
 	cartG.GET("/:user_id", getCartHandler)
