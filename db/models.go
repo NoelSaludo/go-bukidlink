@@ -2,13 +2,21 @@ package db
 
 import "time"
 
-// TODO: add first_name, last_name, ContactNumber
+// User contains basic, public-facing user information
 type User struct {
-	Id       string `json:"id"` // uuid
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Email    string `json:"email"`
-	Address  string `json:"address"`
+	Id       string     `json:"id"` // uuid
+	Email    string     `json:"email"`
+	Username string     `json:"username"`
+	Password string     `json:"password"` // This should be a hash, not plaintext
+	Details  UserDetail `json:"details"`
+}
+
+// UserDetail contains private user information
+type UserDetail struct {
+	Address       string `json:"address"`
+	FirstName     string `json:"first_name"`
+	LastName      string `json:"last_name"`
+	ContactNumber string `json:"contact_number"`
 }
 
 type Item struct {
@@ -31,12 +39,12 @@ type Review struct {
 
 // Order now contains a list of items for the order
 type Order struct {
-	Id          string      `json:"id"`
-	UserId      string      `json:"userid"`
-	Status      string      `json:"status"`
-	OrderDate   time.Time   `json:"order_date"`
-	TotalPrice  float64     `json:"total_price"`
-	Items       []OrderItem `json:"items"`
+	Id         string      `json:"id"`
+	UserId     string      `json:"userid"`
+	Status     string      `json:"status"`
+	OrderDate  time.Time   `json:"order_date"`
+	TotalPrice float64     `json:"total_price"`
+	Items      []OrderItem `json:"items"`
 }
 
 // OrderItem represents a single item within an order
