@@ -84,7 +84,7 @@ func TestGetUser(t *testing.T) {
 	// server may respond with an envelope: { "user": {...}, "profile_pic": {...} }
 	// try to decode that envelope and extract the user
 	var envelope struct {
-		User      db.User        `json:"user"`
+		User       db.User         `json:"user"`
 		ProfilePic json.RawMessage `json:"profile_pic"`
 	}
 
@@ -110,6 +110,15 @@ func Test100Items(t *testing.T) {
 	server.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Response is now array of envelopes: [{"item": {...}, "item_pic": {...}}, ...]
+	var itemEnvelopes []struct {
+		Item    db.Item         `json:"item"`
+		ItemPic json.RawMessage `json:"item_pic"`
+	}
+	err := json.Unmarshal(w.Body.Bytes(), &itemEnvelopes)
+	require.NoError(t, err)
+	assert.NotEmpty(t, itemEnvelopes)
 }
 
 func TestGetItemsByCategory(t *testing.T) {
@@ -121,13 +130,17 @@ func TestGetItemsByCategory(t *testing.T) {
 		w := httptest.NewRecorder()
 		server.ServeHTTP(w, req)
 
-		var items []db.Item
-		err := json.Unmarshal(w.Body.Bytes(), &items)
+		// Response is now array of envelopes: [{"item": {...}, "item_pic": {...}}, ...]
+		var itemEnvelopes []struct {
+			Item    db.Item         `json:"item"`
+			ItemPic json.RawMessage `json:"item_pic"`
+		}
+		err := json.Unmarshal(w.Body.Bytes(), &itemEnvelopes)
 		require.NoError(t, err)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		for _, i := range items {
-			assert.Equal(t, cat, i.Category)
+		for _, envelope := range itemEnvelopes {
+			assert.Equal(t, cat, envelope.Item.Category)
 		}
 	}
 
@@ -164,6 +177,20 @@ func TestGetItemById(t *testing.T) {
 
 	server.ServeHTTP(w, req)
 
+	// Response may be envelope: {"item": {...}, "item_pic": {...}}
+	var envelope struct {
+		Item    db.Item         `json:"item"`
+		ItemPic json.RawMessage `json:"item_pic"`
+	}
+
+	// Try to decode as envelope first
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err == nil && envelope.Item.Id != "" {
+		assert.NotEmpty(t, envelope.Item)
+		assert.NotEmpty(t, envelope.Item.Rating)
+		return
+	}
+
+	// Fallback: maybe the response is the item object directly
 	var item db.Item
 	if err := json.Unmarshal(w.Body.Bytes(), &item); err != nil {
 		log.Fatal(err)
