@@ -78,25 +78,22 @@ func postUserHandler(c *gin.Context) {
 		filename := fmt.Sprintf("%s_pfp.%s", username, ext)
 		fp := filepath.Join(imgsDir, filename)
 
-		// Check if file already exists
-		if _, err := os.Stat(fp); err == nil {
-			c.JSON(http.StatusConflict, gin.H{
-				"error": "profile image already exists",
-			})
-			return
-		} else if !os.IsNotExist(err) {
+		// Check if file already exists, if not save it
+		if _, err := os.Stat(fp); os.IsNotExist(err) {
+			// File doesn't exist, save it
+			if err := os.WriteFile(fp, data, 0o644); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "failed to save profile image",
+				})
+				return
+			}
+		} else if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "failed to check existing profile image",
 			})
 			return
 		}
-
-		if err := os.WriteFile(fp, data, 0o644); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "failed to save profile image",
-			})
-			return
-		}
+		// If file exists, just use the existing one
 
 		// Set relative path in user struct so it will be stored in DB
 		req.User.ProfilePicPath = filepath.ToSlash(filepath.Join("resources/images", filename))
@@ -108,7 +105,7 @@ func postUserHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Success"})
+	c.JSON(http.StatusCreated, gin.H{"message": "Success"})
 }
 
 func getUserHandler(c *gin.Context) {

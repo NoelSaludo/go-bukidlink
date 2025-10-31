@@ -13,6 +13,7 @@ import (
 
 	"bukidlink/db"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,10 +32,10 @@ func TestPostUser(t *testing.T) {
 	server := setupServer()
 
 	data := db.User{
-		Id:       "01d85ea5-0c1f-457c-b1f5-04f4e48b54b6",
+		Id:       uuid.New().String(),
 		Username: "JohnDoe",
 		Password: "password123",
-		Email:    "JohnDoe@example.com",
+		Email:    "JohnDoe" + uuid.NewString() + "@example.com",
 		Details: db.UserDetail{
 			Address:       "123 Main St",
 			FirstName:     "John",
@@ -69,7 +70,10 @@ func TestPostUser(t *testing.T) {
 	w := httptest.NewRecorder()
 	server.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusConflict, w.Code)
+	if w.Code != http.StatusCreated {
+		log.Fatalf("Response Body: %s", w.Body.String())
+	}
+	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
 func TestGetUser(t *testing.T) {
