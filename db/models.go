@@ -4,11 +4,12 @@ import "time"
 
 // User contains basic, public-facing user information
 type User struct {
-	Id       string     `json:"id"` // uuid
-	Email    string     `json:"email"`
-	Username string     `json:"username"`
-	Password string     `json:"password"` // This should be a hash, not plaintext
-	Details  UserDetail `json:"details"`
+	Id             string     `json:"id"` // uuid
+	Email          string     `json:"email"`
+	Username       string     `json:"username"`
+	Password       string     `json:"password"` // This should be a hash, not plaintext
+	ProfilePicPath string     `json:"profile_pic"`
+	Details        UserDetail `json:"details"`
 }
 
 // UserDetail contains private user information

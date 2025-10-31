@@ -10,7 +10,16 @@ import (
 func QueryUser(username string) (User, error) {
 	var user User
 	query := `
-		SELECT u.id, u.username, u.password, u.email, ud.address, ud.first_name, ud.last_name, ud.contact_number, ud.created_date
+		SELECT u.id,
+		u.username,
+		u.password,
+		u.email,
+		u.profile_pic_url,
+		ud.address,
+		ud.first_name,
+		ud.last_name,
+		ud.contact_number,
+		ud.created_date
 		FROM "User" u
 		JOIN "UserUserDetail" uud ON u.id = uud.user_id
 		JOIN "UserDetail" ud ON uud.detail_id = ud.id
@@ -22,6 +31,7 @@ func QueryUser(username string) (User, error) {
 		&user.Username,
 		&user.Password,
 		&user.Email,
+		&user.ProfilePicPath,
 		&user.Details.Address,
 		&user.Details.FirstName,
 		&user.Details.LastName,
@@ -57,25 +67,22 @@ func InsertUser(user User) error {
 		time.Now())
 
 	if err != nil {
-		tx.Rollback()
-		return err
+		return rollbackAndReturn(tx, err)
 	}
 
 	// 2. Insert user
 	userId := uuid.New().String()
-	userQuery := `INSERT INTO "User" (id, username, password, email) VALUES ($1, $2, $3, $4)`
-	_, err = tx.Exec(userQuery, userId, user.Username, user.Password, user.Email)
+	userQuery := `INSERT INTO "User" (id, username, password, email, profile_pic_url) VALUES ($1, $2, $3, $4, $5)`
+	_, err = tx.Exec(userQuery, userId, user.Username, user.Password, user.Email, user.ProfilePicPath)
 	if err != nil {
-		tx.Rollback()
-		return err
+		return rollbackAndReturn(tx, err)
 	}
 
 	// 3. Link them in the UserUserDetail table
 	linkQuery := `INSERT INTO "UserUserDetail" (user_id, detail_id) VALUES ($1, $2)`
 	_, err = tx.Exec(linkQuery, userId, detailsId)
 	if err != nil {
-		tx.Rollback()
-		return err
+		return rollbackAndReturn(tx, err)
 	}
 
 	return tx.Commit()
@@ -93,40 +100,28 @@ func DeleteUser(userId string) error {
 	linkQuery := `SELECT detail_id FROM "UserUserDetail" WHERE user_id = $1`
 	err = tx.QueryRow(linkQuery, userId).Scan(&detailsId)
 	if err != nil {
-		if rberr := tx.Rollback(); rberr != nil {
-			return rberr
-		}
-		return err
+		return rollbackAndReturn(tx, err)
 	}
 
 	// 2. Delete from UserUserDetail link table first
 	deleteLinkQuery := `DELETE FROM "UserUserDetail" WHERE user_id = $1`
 	_, err = tx.Exec(deleteLinkQuery, userId)
 	if err != nil {
-		if rberr := tx.Rollback(); rberr != nil {
-			return rberr
-		}
-		return err
+		return rollbackAndReturn(tx, err)
 	}
 
 	// 3. Delete from User
 	userQuery := `DELETE FROM "User" WHERE id = $1`
 	_, err = tx.Exec(userQuery, userId)
 	if err != nil {
-		if rberr := tx.Rollback(); rberr != nil {
-			return rberr
-		}
-		return err
+		return rollbackAndReturn(tx, err)
 	}
 
 	// 4. Delete from UserDetail
 	detailsQuery := `DELETE FROM "UserDetail" WHERE id = $1`
 	_, err = tx.Exec(detailsQuery, detailsId)
 	if err != nil {
-		if rberr := tx.Rollback(); rberr != nil {
-			return rberr
-		}
-		return err
+		return rollbackAndReturn(tx, err)
 	}
 
 	return tx.Commit()

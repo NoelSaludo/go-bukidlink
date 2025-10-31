@@ -84,3 +84,19 @@ func getReviewFromRow(rows *sql.Rows, reviews []Review) ([]Review, error) {
 	}
 	return reviews, nil
 }
+
+// rollbackAndReturn attempts to rollback the provided transaction and
+// returns the rollback error if it occurs; otherwise it returns the
+// original error that triggered the rollback.
+//
+// Usage:
+//
+//	if err := someDBOp(); err != nil {
+//	    return rollbackAndReturn(tx, err)
+//	}
+func rollbackAndReturn(tx *sql.Tx, origErr error) error {
+	if rberr := tx.Rollback(); rberr != nil {
+		return rberr
+	}
+	return origErr
+}
