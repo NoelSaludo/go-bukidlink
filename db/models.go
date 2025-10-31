@@ -8,7 +8,9 @@ type User struct {
 	Email          string     `json:"email"`
 	Username       string     `json:"username"`
 	Password       string     `json:"password"` // This should be a hash, not plaintext
-	ProfilePicPath string     `json:"profile_pic"`
+	// ProfilePicPath stores the URL/path to the user's profile picture as stored in the DB.
+	// DB column name: profile_pic_url
+	ProfilePicPath string     `json:"profile_pic_url"`
 	Details        UserDetail `json:"details"`
 }
 

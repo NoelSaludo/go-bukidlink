@@ -25,6 +25,8 @@ func TestQueryUsers(t *testing.T) {
 	assert.NotEmpty(t, resultUser.Details.Address)
 	assert.NotEmpty(t, resultUser.Details.FirstName)
 	assert.NotEmpty(t, resultUser.Details.LastName)
+	assert.NotEmpty(t, resultUser.Details.ContactNumber)
+
 }
 
 func TestInsertAndDelete(t *testing.T) {
