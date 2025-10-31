@@ -74,6 +74,102 @@ func getItembyId(c *gin.Context) {
 	c.JSON(http.StatusOK, item)
 }
 
+func postItemHandler(c *gin.Context) {
+	// Expect payload shape: { "item": {..}, "item_pic": {"base64":"...","content_type":"..."} }
+	var req struct {
+		Item    db.Item `json:"item"`
+		ItemPic *struct {
+			Base64      string `json:"base64"`
+			ContentType string `json:"content_type"`
+		} `json:"item_pic"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// If item picture provided, decode and save to resources/images/<itemname>_pic.<ext>
+	if req.ItemPic != nil && req.ItemPic.Base64 != "" {
+		itemName := req.Item.Name
+		if itemName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "item name is required when uploading item_pic",
+			})
+			return
+		}
+
+		data, err := base64.StdEncoding.DecodeString(req.ItemPic.Base64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid base64 item_pic",
+			})
+			return
+		}
+
+		// Determine extension from content type
+		ext := "jpg"
+		switch req.ItemPic.ContentType {
+		case "image/jpeg", "image/jpg":
+			ext = "jpg"
+		case "image/png":
+			ext = "png"
+		case "image/gif":
+			ext = "gif"
+		case "image/webp":
+			ext = "webp"
+		default:
+			// Try to detect from decoded data
+			contentType := http.DetectContentType(data)
+			if contentType == "image/png" {
+				ext = "png"
+			} else if contentType == "image/gif" {
+				ext = "gif"
+			}
+		}
+
+		// Ensure directory exists
+		imgsDir := filepath.Join("resources", "images")
+		if err := os.MkdirAll(imgsDir, 0o755); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to create images directory",
+			})
+			return
+		}
+
+		filename := itemName + "_pic." + ext
+		fp := filepath.Join(imgsDir, filename)
+
+		// Check if file already exists, if not save it
+		if _, err := os.Stat(fp); os.IsNotExist(err) {
+			// File doesn't exist, save it
+			if err := os.WriteFile(fp, data, 0o644); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "failed to save item image",
+				})
+				return
+			}
+		} else if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to check existing item image",
+			})
+			return
+		}
+
+		// Set relative path in item struct so it will be stored in DB
+		req.Item.ImgPath = filepath.ToSlash(filepath.Join("resources/images", filename))
+	}
+
+	// Insert item into DB
+	itemId, err := db.InsertItem(req.Item)
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"status": "item created", "item_id": itemId})
+}
+
 // readItemImage reads an image from the filesystem and returns base64-encoded data
 func readItemImage(imgPath string) *struct {
 	Base64      string

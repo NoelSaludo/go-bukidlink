@@ -1,5 +1,7 @@
 package db
 
+import "github.com/google/uuid"
+
 func QueryItemByID(id string) (Item, error) {
 
 	query := `SELECT i.id as itemid,
@@ -80,4 +82,25 @@ func QueryItembyCategory(category string) ([]Item, error) {
 
 	items = getItemsFromRow(rows, items)
 	return items, nil
+}
+
+func InsertItem(item Item) (string, error) {
+	itemId := uuid.New().String()
+	query := `INSERT INTO "Item" (id, name, description, amount, costpkilo, category, img_path)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
+	_, err := db.Exec(query,
+		itemId,
+		item.Name,
+		item.Description,
+		item.Amount,
+		item.CostPKilo,
+		item.Category,
+		item.ImgPath,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return itemId, nil
 }

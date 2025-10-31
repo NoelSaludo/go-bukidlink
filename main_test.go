@@ -200,6 +200,47 @@ func TestGetItemById(t *testing.T) {
 	assert.NotEmpty(t, item.Rating)
 }
 
+func TestPostItem(t *testing.T) {
+	server := setupServer()
+
+	newItem := db.Item{
+		Name:        "Test Item",
+		Description: "This is a test item",
+		CostPKilo:   10.0,
+		Category:    "dairy",
+		Amount:      50,
+	}
+
+	// Sample image to encode
+	imgPath := "resources/images/nanakusa-nazuna-icons.png"
+	imgData, err := os.ReadFile(imgPath)
+	if err != nil {
+		log.Fatalf("failed to read image: %v", err)
+	}
+	imgBase64 := base64.StdEncoding.EncodeToString(imgData)
+
+	payload := map[string]interface{}{
+		"item": newItem,
+		"item_pic": map[string]string{
+			"base64":       imgBase64,
+			"content_type": "image/png",
+		},
+	}
+
+	jData, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPost, "/item", bytes.NewBuffer(jData))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		log.Fatalf("Response Body: %s", w.Body.String())
+	}
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
 func TestOrderAPIWorkflow(t *testing.T) {
 	server := setupServer()
 	userID := "d30869ec-fb97-46d8-85a3-82608c01f803" // JohnDoe

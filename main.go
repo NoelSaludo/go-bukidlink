@@ -22,6 +22,7 @@ func setupServer() *gin.Engine {
 	itemGroup.GET("/:block", get100ItemsHandler)
 	itemGroup.GET("/category/:category", getItemByCategory)
 	itemGroup.GET("", getItembyId)
+	itemGroup.POST("", postItemHandler)
 
 	userGroup := r.Group("/user")
 	userGroup.GET("/:username", getUserHandler)
