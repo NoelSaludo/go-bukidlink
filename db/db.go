@@ -54,7 +54,9 @@ func getItemsFromRow(rows *sql.Rows, items []Item) []Item {
 			&item.Description,
 			&item.CostPKilo,
 			&item.Category,
-			&item.Amount)
+			&item.Amount,
+			&item.ImgPath,
+		)
 
 		if err != nil {
 			log.Fatal(err)

@@ -4,10 +4,10 @@ import "time"
 
 // User contains basic, public-facing user information
 type User struct {
-	Id             string     `json:"id"` // uuid
-	Email          string     `json:"email"`
-	Username       string     `json:"username"`
-	Password       string     `json:"password"` // This should be a hash, not plaintext
+	Id       string `json:"id"` // uuid
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	Password string `json:"password"` // This should be a hash, not plaintext
 	// ProfilePicPath stores the URL/path to the user's profile picture as stored in the DB.
 	// DB column name: profile_pic_url
 	ProfilePicPath string     `json:"profile_pic_url"`
@@ -31,6 +31,7 @@ type Item struct {
 	CostPKilo   float64 `json:"costPKilo"`
 	Category    string  `json:"category"`
 	Rating      float64 `json:"rating"`
+	ImgPath     string  `json:"img_path"`
 }
 
 type Review struct {

@@ -8,6 +8,7 @@ func QueryItemByID(id string) (Item, error) {
 			i.costpkilo,
 			i.category,
 			i.amount,
+			i.img_path,
 			AVG(c.rating) AS rating
 			FROM "Item" AS i
 			JOIN "Review" AS C ON c.itemid = i.id
@@ -24,7 +25,10 @@ func QueryItemByID(id string) (Item, error) {
 		&item.Description,
 		&item.CostPKilo,
 		&item.Category,
-		&item.Amount, &item.Rating)
+		&item.Amount,
+		&item.ImgPath,
+		&item.Rating,
+	)
 
 	if err != nil {
 		return Item{}, err
@@ -41,7 +45,8 @@ func QueryAllItem100(block int) ([]Item, error) {
 			description,
 			costpkilo,
 			category,
-			amount 
+			amount,
+			img_path
 			FROM "Item" LIMIT 100 OFFSET $1`
 	rows, err := db.Query(query, block*100)
 	if err != nil {
@@ -64,7 +69,8 @@ func QueryItembyCategory(category string) ([]Item, error) {
 				description,
 				costpkilo,
 				category,
-				amount 
+				amount,
+				img_path 
 				FROM public."Item" WHERE category=$1`
 
 	rows, err := db.Query(query, category)
