@@ -3,25 +3,107 @@ package main
 import (
 	"bukidlink/db"
 	"encoding/base64"
+	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 func postUserHandler(c *gin.Context) {
-	var data db.User
-	err := c.ShouldBindJSON(&data)
-	if err != nil {
+	// Expect payload shape: { "user": {..}, "profile_pic": {"base64":"...","content_type":"..."} }
+	var req struct {
+		User       db.User `json:"user"`
+		ProfilePic *struct {
+			Base64      string `json:"base64"`
+			ContentType string `json:"content_type"`
+		} `json:"profile_pic"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = db.InsertUser(data)
+	// If profile picture provided, decode and save to resources/images/<username>_pfp.<ext>
+	if req.ProfilePic != nil && req.ProfilePic.Base64 != "" {
+		username := req.User.Username
+		if username == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "username is required when uploading profile_pic",
+			})
+			return
+		}
 
-	if err != nil {
+		data, err := base64.StdEncoding.DecodeString(req.ProfilePic.Base64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid base64 profile_pic",
+			})
+			return
+		}
+
+		// Determine extension from content type, fallback to first mime.ExtensionsByType result
+		ext := "bin"
+		if req.ProfilePic.ContentType != "" {
+			// try mime.ExtensionsByType
+			if exts, _ := mime.ExtensionsByType(req.ProfilePic.ContentType); len(exts) > 0 {
+				// exts contain leading dot, strip it
+				ext = strings.TrimPrefix(exts[0], ".")
+			} else {
+				// fallback to subtype (image/png -> png, image/svg+xml -> svg)
+				parts := strings.Split(req.ProfilePic.ContentType, "/")
+				if len(parts) == 2 {
+					sub := strings.Split(parts[1], "+")[0]
+					if sub != "" {
+						ext = sub
+					}
+				}
+			}
+		}
+
+		// Ensure directory exists
+		imgsDir := filepath.Join("resources", "images")
+		if err := os.MkdirAll(imgsDir, 0o755); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to create images directory",
+			})
+			return
+		}
+
+		filename := fmt.Sprintf("%s_pfp.%s", username, ext)
+		fp := filepath.Join(imgsDir, filename)
+
+		// Check if file already exists
+		if _, err := os.Stat(fp); err == nil {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "profile image already exists",
+			})
+			return
+		} else if !os.IsNotExist(err) {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to check existing profile image",
+			})
+			return
+		}
+
+		if err := os.WriteFile(fp, data, 0o644); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to save profile image",
+			})
+			return
+		}
+
+		// Set relative path in user struct so it will be stored in DB
+		req.User.ProfilePicPath = filepath.ToSlash(filepath.Join("resources/images", filename))
+	}
+
+	// Insert user into DB
+	if err := db.InsertUser(req.User); err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}

@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -33,9 +35,33 @@ func TestPostUser(t *testing.T) {
 		Username: "JohnDoe",
 		Password: "password123",
 		Email:    "JohnDoe@example.com",
+		Details: db.UserDetail{
+			Address:       "123 Main St",
+			FirstName:     "John",
+			LastName:      "Doe",
+			ContactNumber: "1234567890",
+			CreatedDate:   time.Now(),
+		},
 	}
 
-	jData, _ := json.Marshal(data)
+	// decode image to base64
+	imgPath := "resources/images/nanakusa-nazuna-icons.png"
+	imgData, err := os.ReadFile(imgPath)
+	if err != nil {
+		log.Fatalf("failed to read image: %v", err)
+	}
+	imgBase64 := base64.StdEncoding.EncodeToString(imgData)
+
+	// POST payload now expects an envelope: { "user": {...}, "profile_pic": {"base64":"","content_type":""} }
+	payload := map[string]interface{}{
+		"user": data,
+		"profile_pic": map[string]string{
+			"base64":       imgBase64,
+			"content_type": "image/png",
+		},
+	}
+
+	jData, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(jData))
 	req.Header.Set("Content-Type", "application/json")
@@ -55,6 +81,20 @@ func TestGetUser(t *testing.T) {
 	server.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+	// server may respond with an envelope: { "user": {...}, "profile_pic": {...} }
+	// try to decode that envelope and extract the user
+	var envelope struct {
+		User      db.User        `json:"user"`
+		ProfilePic json.RawMessage `json:"profile_pic"`
+	}
+
+	// First try to decode into envelope
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err == nil && envelope.User.Username != "" {
+		assert.NotEmpty(t, envelope.User)
+		return
+	}
+
+	// Fallback: maybe the response is the user object directly
 	var user db.User
 	err := json.Unmarshal(w.Body.Bytes(), &user)
 	require.NoError(t, err)
