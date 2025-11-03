@@ -1,0 +1,73 @@
+package db
+
+import (
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestGetPostsByBlock(t *testing.T) {
+	_ = SetupDatabase()
+
+	posts, err := GetPostsByBlock(1)
+	assert.NoError(t, err)
+	assert.NotNil(t, posts)
+	assert.LessOrEqual(t, len(posts), 100)
+}
+
+func TestGetPostByID(t *testing.T) {
+	_ = SetupDatabase()
+
+	post, err := GetPostByID("11111111-1111-1111-1111-111111111111")
+	assert.NoError(t, err)
+	assert.NotNil(t, post)
+	assert.Equal(t, "11111111-1111-1111-1111-111111111111", post.ID)
+}
+
+func TestUpdatePost(t *testing.T) {
+	_ = SetupDatabase()
+
+	err := UpdatePost("11111111-1111-1111-1111-111111111111", "Updated content", "updated-image-url.jpg")
+	assert.NoError(t, err)
+}
+
+func TestGetPostsByUser(t *testing.T) {
+	_ = SetupDatabase()
+
+	posts, err := GetPostsByUser("d30869ec-fb97-46d8-85a3-82608c01f803")
+	assert.NoError(t, err)
+	assert.NotNil(t, posts)
+}
+
+func TestInsertAndDeletePost(t *testing.T) {
+	_ = SetupDatabase()
+
+	// Insert a new post
+	newPost := Post{
+		ID:        "77777777-7777-7777-7777-777777777777",
+		FarmerID:  "d30869ec-fb97-46d8-85a3-82608c01f803",
+		FarmID:    nil,
+		Content:   "This is a test post for insert and delete functionality.",
+		ImageURL:  nil,
+		CreatedAt: time.Now(),
+	}
+
+	err := InsertPost(newPost)
+	assert.NoError(t, err)
+
+	// Verify the post was inserted
+	insertedPost, err := GetPostByID(newPost.ID)
+	assert.NoError(t, err)
+	assert.NotNil(t, insertedPost)
+	assert.Equal(t, newPost.ID, insertedPost.ID)
+
+	// Delete the post
+	err = DeletePost(newPost.ID)
+	assert.NoError(t, err)
+
+	// Verify the post was deleted
+	deletedPost, err := GetPostByID(newPost.ID)
+	assert.Error(t, err)
+	assert.Nil(t, deletedPost)
+}
