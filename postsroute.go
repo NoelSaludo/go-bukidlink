@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // encodeImageToBase64 reads an image file and returns base64 encoded data and content type
@@ -40,6 +42,39 @@ func encodeImageToBase64(imageURL *string) (string, string, error) {
 	}
 
 	return base64Image, contentType, nil
+}
+
+// decodeAndSaveImage decodes base64 image data and saves it to a file
+func decodeAndSaveImage(base64Data string, contentType string, filename string) (string, error) {
+	// Decode base64 string
+	imageData, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return "", err
+	}
+
+	// Determine file extension from content type
+	ext := ".jpg" // default
+	switch contentType {
+	case "image/png":
+		ext = ".png"
+	case "image/jpeg", "image/jpg":
+		ext = ".jpg"
+	case "image/gif":
+		ext = ".gif"
+	case "image/webp":
+		ext = ".webp"
+	}
+
+	// Create file path
+	filePath := filepath.Join("resources", "images", filename+ext)
+
+	// Write file to disk
+	err = os.WriteFile(filePath, imageData, 0644)
+	if err != nil {
+		return "", err
+	}
+
+	return filePath, nil
 }
 
 func getUserPostsHandler(c *gin.Context) {
@@ -104,7 +139,58 @@ func getUserPostHandler(c *gin.Context) {
 }
 
 func postUserPostHandler(c *gin.Context) {
+	var payload struct {
+		Post struct {
+			FarmerID string  `json:"farmer_id"`
+			FarmID   *string `json:"farm_id"`
+			Content  string  `json:"content"`
+		} `json:"post"`
+		PostImage struct {
+			Base64      string `json:"base64"`
+			ContentType string `json:"content_type"`
+		} `json:"post_image"`
+	}
 
+	if err := c.BindJSON(&payload); err != nil {
+		retBadReqErr(err, c)
+		return
+	}
+
+	// Generate new post ID
+	postID := uuid.New().String()
+
+	// Handle image if provided
+	var imageURL *string
+	if payload.PostImage.Base64 != "" && payload.PostImage.ContentType != "" {
+		// Save image with post ID as filename
+		filePath, err := decodeAndSaveImage(payload.PostImage.Base64, payload.PostImage.ContentType, postID+"_post")
+		if err != nil {
+			retConflictErr(err, c)
+			return
+		}
+		imageURL = &filePath
+	}
+
+	// Create post object
+	newPost := db.Post{
+		ID:        postID,
+		FarmerID:  payload.Post.FarmerID,
+		FarmID:    payload.Post.FarmID,
+		Content:   payload.Post.Content,
+		ImageURL:  imageURL,
+		CreatedAt: time.Now(),
+	}
+
+	// Insert post into database
+	if err := db.InsertPost(newPost); err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"post_id": postID,
+		"message": "Post created successfully",
+	})
 }
 func updateUserPostHandler(c *gin.Context) {
 

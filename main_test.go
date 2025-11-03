@@ -478,3 +478,43 @@ func TestGetUserPost(t *testing.T) {
 		assert.NotEmpty(t, post["image_content_type"], "image_content_type should be present when image_url exists")
 	}
 }
+
+func TestPostUserPost(t *testing.T) {
+	server := setupServer()
+
+	farmid := "11111111-aaaa-aaaa-aaaa-111111111111" // Sunny Fields
+	newPost := db.Post{
+		FarmerID: "d30869ec-fb97-46d8-85a3-82608c01f803", // JohnDoe
+		FarmID:   &farmid,
+		Content:  "This is a test post from JohnDoe.",
+	}
+
+	// Sample image to encode
+	imgPath := "resources/images/nanakusa-nazuna-icons.png"
+	imgData, err := os.ReadFile(imgPath)
+	if err != nil {
+		log.Fatalf("failed to read image: %v", err)
+	}
+	imgBase64 := base64.StdEncoding.EncodeToString(imgData)
+
+	payload := map[string]interface{}{
+		"post": newPost,
+		"post_image": map[string]string{
+			"base64":       imgBase64,
+			"content_type": "image/png",
+		},
+	}
+
+	jData, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPost, "/userpost", bytes.NewBuffer(jData))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		log.Fatalf("Response Body: %s", w.Body.String())
+	}
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
