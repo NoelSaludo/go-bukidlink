@@ -42,6 +42,13 @@ func setupServer() *gin.Engine {
 	cartG.POST("/item", addCartItemHandler)
 	cartG.DELETE("/item/:cart_item_id", removeCartItemHandler)
 
+	userPostG := r.Group("/userpost")
+	userPostG.GET("/:user_id", getUserPostsHandler)
+	userPostG.GET("/post/:post_id", getUserPostHandler)
+	userPostG.POST("", postUserPostHandler)
+	userPostG.PATCH("/:post_id", updateUserPostHandler)
+	userPostG.DELETE("/:post_id", deleteUserPostHandler)
+
 	db.SetupDatabase()
 
 	return r

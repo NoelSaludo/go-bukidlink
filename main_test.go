@@ -417,3 +417,33 @@ func TestCartAPIWorkflow(t *testing.T) {
 	assert.Len(t, cart.Items, 1, "Cart should have 1 item type after deleting banana")
 	assert.Equal(t, tomatoID, cart.Items[0].ItemId, "The remaining item should be the tomato")
 }
+
+func TestGetUsersPosts(t *testing.T) {
+	server := setupServer()
+	userID := "d30869ec-fb97-46d8-85a3-82608c01f803" // JohnDoe
+
+	req, _ := http.NewRequest(http.MethodGet, "/userpost/"+userID, nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Response now includes enriched posts with base64 encoded images
+	var enrichedPosts []map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &enrichedPosts)
+	require.NoError(t, err)
+	assert.NotEmpty(t, enrichedPosts)
+
+	// Verify that posts have the expected fields including image encoding
+	for _, post := range enrichedPosts {
+		assert.NotEmpty(t, post["id"])
+		assert.NotEmpty(t, post["farmer_id"])
+		assert.NotEmpty(t, post["content"])
+
+		// If image_url exists, verify base64 and content_type are included
+		if post["image_url"] != nil && post["image_url"] != "" {
+			assert.NotEmpty(t, post["image_base64"], "image_base64 should be present when image_url exists")
+			assert.NotEmpty(t, post["image_content_type"], "image_content_type should be present when image_url exists")
+		}
+	}
+}
