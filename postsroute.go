@@ -192,9 +192,90 @@ func postUserPostHandler(c *gin.Context) {
 		"message": "Post created successfully",
 	})
 }
+
 func updateUserPostHandler(c *gin.Context) {
+	postID := c.Param("post_id")
 
+	var payload struct {
+		Content   *string `json:"content"`
+		PostImage *struct {
+			Base64      string `json:"base64"`
+			ContentType string `json:"content_type"`
+		} `json:"post_image"`
+	}
+
+	if err := c.BindJSON(&payload); err != nil {
+		retBadReqErr(err, c)
+		return
+	}
+
+	// Get the existing post
+	existingPost, err := db.GetPostByID(postID)
+	if err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+
+	// Update content if provided
+	content := existingPost.Content
+	if payload.Content != nil {
+		content = *payload.Content
+	}
+
+	// Handle image update if provided
+	imageURL := ""
+	if existingPost.ImageURL != nil {
+		imageURL = *existingPost.ImageURL
+	}
+
+	if payload.PostImage != nil && payload.PostImage.Base64 != "" && payload.PostImage.ContentType != "" {
+		// Delete old image if exists
+		if existingPost.ImageURL != nil && *existingPost.ImageURL != "" {
+			os.Remove(*existingPost.ImageURL)
+		}
+
+		// Save new image with post ID as filename
+		filePath, err := decodeAndSaveImage(payload.PostImage.Base64, payload.PostImage.ContentType, postID+"_post")
+		if err != nil {
+			retInternalServErr(err, c)
+			return
+		}
+		imageURL = filePath
+	}
+
+	// Update post in database
+	if err := db.UpdatePost(postID, content, imageURL); err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Post updated successfully",
+	})
 }
-func deleteUserPostHandler(c *gin.Context) {
 
+func deleteUserPostHandler(c *gin.Context) {
+	postID := c.Param("post_id")
+
+	// Get the existing post to retrieve image path
+	existingPost, err := db.GetPostByID(postID)
+	if err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+
+	// Delete the post from database
+	if err := db.DeletePost(postID); err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+
+	// Delete the associated image file if exists
+	if existingPost.ImageURL != nil && *existingPost.ImageURL != "" {
+		os.Remove(*existingPost.ImageURL)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Post deleted successfully",
+	})
 }

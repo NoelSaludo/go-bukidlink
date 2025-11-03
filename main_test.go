@@ -518,3 +518,115 @@ func TestPostUserPost(t *testing.T) {
 	}
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
+
+func TestUpdateUserPost(t *testing.T) {
+	server := setupServer()
+
+	// First, create a post to update
+	farmid := "11111111-aaaa-aaaa-aaaa-111111111111" // Sunny Fields
+	newPost := db.Post{
+		FarmerID: "d30869ec-fb97-46d8-85a3-82608c01f803", // JohnDoe
+		FarmID:   &farmid,
+		Content:  "Original post content",
+	}
+
+	imgPath := "resources/images/nanakusa-nazuna-icons.png"
+	imgData, err := os.ReadFile(imgPath)
+	if err != nil {
+		t.Skipf("Test image not found: %v", err)
+		return
+	}
+	imgBase64 := base64.StdEncoding.EncodeToString(imgData)
+
+	createPayload := map[string]interface{}{
+		"post": newPost,
+		"post_image": map[string]string{
+			"base64":       imgBase64,
+			"content_type": "image/png",
+		},
+	}
+
+	jData, _ := json.Marshal(createPayload)
+	req, _ := http.NewRequest(http.MethodPost, "/userpost", bytes.NewBuffer(jData))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	require.Equal(t, http.StatusCreated, w.Code)
+
+	var createResp map[string]string
+	json.Unmarshal(w.Body.Bytes(), &createResp)
+	postID := createResp["post_id"]
+	require.NotEmpty(t, postID)
+
+	// Test 1: Update content only
+	updatePayload1 := map[string]interface{}{
+		"content": "Updated post content",
+	}
+	jData1, _ := json.Marshal(updatePayload1)
+	req, _ = http.NewRequest(http.MethodPatch, "/userpost/"+postID, bytes.NewBuffer(jData1))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Verify the update
+	req, _ = http.NewRequest(http.MethodGet, "/userpost/post/"+postID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var updatedPost map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &updatedPost)
+	assert.Equal(t, "Updated post content", updatedPost["content"])
+
+	// Test 2: Update image only
+	updatePayload2 := map[string]interface{}{
+		"post_image": map[string]string{
+			"base64":       imgBase64,
+			"content_type": "image/png",
+		},
+	}
+	jData2, _ := json.Marshal(updatePayload2)
+	req, _ = http.NewRequest(http.MethodPatch, "/userpost/"+postID, bytes.NewBuffer(jData2))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Test 3: Update both content and image
+	updatePayload3 := map[string]interface{}{
+		"content": "Final updated content",
+		"post_image": map[string]string{
+			"base64":       imgBase64,
+			"content_type": "image/png",
+		},
+	}
+	jData3, _ := json.Marshal(updatePayload3)
+	req, _ = http.NewRequest(http.MethodPatch, "/userpost/"+postID, bytes.NewBuffer(jData3))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Verify the final update
+	req, _ = http.NewRequest(http.MethodGet, "/userpost/post/"+postID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	json.Unmarshal(w.Body.Bytes(), &updatedPost)
+	assert.Equal(t, "Final updated content", updatedPost["content"])
+	assert.NotEmpty(t, updatedPost["image_base64"])
+
+	// Cleanup: Delete the test post
+	req, _ = http.NewRequest(http.MethodDelete, "/userpost/"+postID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Verify the post was deleted
+	req, _ = http.NewRequest(http.MethodGet, "/userpost/post/"+postID, nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusInternalServerError, w.Code, "Deleted post should not be found")
+}
