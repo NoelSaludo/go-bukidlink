@@ -422,9 +422,179 @@ Error responses follow this format:
 ### UUIDs
 All entity IDs use UUID v4 format. When creating resources, the server generates UUIDs automatically - you don't need to provide them in POST requests (except for references to existing resources like `user_id` or `item_id`).
 
+---
+
+## Post Routes
+
+### GET /userpost/:user_id
+**Purpose**: Get all posts by a specific user (farmer), with images encoded as base64.
+
+**Parameters**:
+- `:user_id` (path) - User UUID
+
+**Response**: JSON array of enriched post objects with base64 encoded images, status `200 OK`.
+
+**Example**:
+```bash
+curl http://localhost:8080/userpost/d30869ec-fb97-46d8-85a3-82608c01f803
+```
+
+**Response Example**:
+```json
+[
+    {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "farmer_id": "d30869ec-fb97-46d8-85a3-82608c01f803",
+        "farm_id": "11111111-aaaa-aaaa-aaaa-111111111111",
+        "content": "Exploring new farming techniques at Sunny Fields.",
+        "image_url": "resources/images/11111111-1111-1111-1111-111111111111_post.png",
+        "created_at": "2025-10-30T14:51:36Z",
+        "image_base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+        "image_content_type": "image/png"
+    }
+]
+```
+
+### GET /userpost/post/:post_id
+**Purpose**: Get a specific post by ID, with image encoded as base64.
+
+**Parameters**:
+- `:post_id` (path) - Post UUID
+
+**Response**: JSON object with post data and base64 encoded image, status `200 OK`.
+
+**Example**:
+```bash
+curl http://localhost:8080/userpost/post/11111111-1111-1111-1111-111111111111
+```
+
+**Response Example**:
+```json
+{
+    "id": "11111111-1111-1111-1111-111111111111",
+    "farmer_id": "d30869ec-fb97-46d8-85a3-82608c01f803",
+    "farm_id": "11111111-aaaa-aaaa-aaaa-111111111111",
+    "content": "Exploring new farming techniques at Sunny Fields.",
+    "image_url": "resources/images/11111111-1111-1111-1111-111111111111_post.png",
+    "created_at": "2025-10-30T14:51:36Z",
+    "image_base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+    "image_content_type": "image/png"
+}
+```
+
+### POST /userpost
+**Purpose**: Create a new post with optional image upload.
+
+**Request Body**: JSON object with `post` data and optional `post_image` with base64 encoded image.
+
+**Response**: 
+- `201 Created` with `{"post_id":"<NEW_POST_UUID>","message":"Post created successfully"}` on success
+- `400 Bad Request` if JSON is malformed
+- `500 Internal Server Error` on database errors
+
+**Example**:
+```bash
+curl -X POST http://localhost:8080/userpost \
+  -H "Content-Type: application/json" \
+  -d '{
+    "post": {
+      "farmer_id": "d30869ec-fb97-46d8-85a3-82608c01f803",
+      "farm_id": "11111111-aaaa-aaaa-aaaa-111111111111",
+      "content": "Check out our new harvest!"
+    },
+    "post_image": {
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "content_type": "image/png"
+    }
+  }'
+```
+
+**Response**: `{"post_id":"<NEW_POST_UUID>","message":"Post created successfully"}`
+
+**Note**: The `post_image` field is optional. If omitted, the post will be created without an image.
+
+### PATCH /userpost/:post_id
+**Purpose**: Update an existing post's content and/or image.
+
+**Parameters**:
+- `:post_id` (path) - Post UUID
+
+**Request Body**: JSON object with optional `content` (string) and/or `post_image` (base64 encoded).
+
+**Response**: 
+- `200 OK` with `{"message":"Post updated successfully"}` on success
+- `400 Bad Request` if JSON is malformed
+- `500 Internal Server Error` on database errors
+
+**Example - Update content only**:
+```bash
+curl -X PATCH http://localhost:8080/userpost/11111111-1111-1111-1111-111111111111 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Updated post content"
+  }'
+```
+
+**Example - Update image only**:
+```bash
+curl -X PATCH http://localhost:8080/userpost/11111111-1111-1111-1111-111111111111 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "post_image": {
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "content_type": "image/png"
+    }
+  }'
+```
+
+**Example - Update both content and image**:
+```bash
+curl -X PATCH http://localhost:8080/userpost/11111111-1111-1111-1111-111111111111 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Final updated content",
+    "post_image": {
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "content_type": "image/png"
+    }
+  }'
+```
+
+**Response**: `{"message":"Post updated successfully"}`
+
+**Note**: Both fields are optional. You can update just the content, just the image, or both. If updating the image, the old image file will be deleted.
+
+### DELETE /userpost/:post_id
+**Purpose**: Delete a post and its associated image file.
+
+**Parameters**:
+- `:post_id` (path) - Post UUID to delete
+
+**Response**: `200 OK` with `{"message":"Post deleted successfully"}`, or `500 Internal Server Error` on failure.
+
+**Example**:
+```bash
+curl -X DELETE http://localhost:8080/userpost/11111111-1111-1111-1111-111111111111
+```
+
+**Response**: `{"message":"Post deleted successfully"}`
+
+---
+
+## Notes
+
+### Image Encoding
+Posts, users, and items support image uploads via base64 encoding:
+- **Upload**: Send images in request body as `{"base64":"<encoded_data>","content_type":"image/png"}`
+- **Download**: GET requests return images embedded in response as `image_base64` and `image_content_type` fields
+- **Supported formats**: PNG, JPEG/JPG, GIF, WEBP
+- Images are stored in `resources/images/` directory
+
 ### Testing
 Test data includes specific UUIDs that can be used for manual testing:
 - Test user "JohnDoe": `d30869ec-fb97-46d8-85a3-82608c01f803`
 - Test user "DanielGaliego": `c6554794-849f-4338-87c5-6db2e2f76514`
 - Test item "Banana": `a3e1b9f2-7d94-4d3a-9b4a-111111111111`
 - Test item "Tomato": `b7f2c6d4-1aeb-4f5b-9c2b-222222222222`
+- Test post: `11111111-1111-1111-1111-111111111111`
+- Test farm "Sunny Fields": `11111111-aaaa-aaaa-aaaa-111111111111`
