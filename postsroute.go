@@ -11,6 +11,37 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// encodeImageToBase64 reads an image file and returns base64 encoded data and content type
+func encodeImageToBase64(imageURL *string) (string, string, error) {
+	if imageURL == nil || *imageURL == "" {
+		return "", "", nil
+	}
+
+	imageData, err := os.ReadFile(*imageURL)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Encode to base64
+	base64Image := base64.StdEncoding.EncodeToString(imageData)
+
+	// Determine content type from file extension
+	ext := strings.ToLower(filepath.Ext(*imageURL))
+	contentType := "image/jpeg" // default
+	switch ext {
+	case ".png":
+		contentType = "image/png"
+	case ".jpg", ".jpeg":
+		contentType = "image/jpeg"
+	case ".gif":
+		contentType = "image/gif"
+	case ".webp":
+		contentType = "image/webp"
+	}
+
+	return base64Image, contentType, nil
+}
+
 func getUserPostsHandler(c *gin.Context) {
 	userID := c.Param("user_id")
 
@@ -32,29 +63,10 @@ func getUserPostsHandler(c *gin.Context) {
 			"created_at": post.CreatedAt,
 		}
 
-		// If image_url exists, read and encode the image
-		if post.ImageURL != nil && *post.ImageURL != "" {
-			imageData, err := os.ReadFile(*post.ImageURL)
-			if err == nil {
-				// Encode to base64
-				base64Image := base64.StdEncoding.EncodeToString(imageData)
-				postData["image_base64"] = base64Image
-
-				// Determine content type from file extension
-				ext := strings.ToLower(filepath.Ext(*post.ImageURL))
-				contentType := "image/jpeg" // default
-				switch ext {
-				case ".png":
-					contentType = "image/png"
-				case ".jpg", ".jpeg":
-					contentType = "image/jpeg"
-				case ".gif":
-					contentType = "image/gif"
-				case ".webp":
-					contentType = "image/webp"
-				}
-				postData["image_content_type"] = contentType
-			}
+		// Encode image if available
+		if base64Image, contentType, err := encodeImageToBase64(post.ImageURL); err == nil && base64Image != "" {
+			postData["image_base64"] = base64Image
+			postData["image_content_type"] = contentType
 		}
 
 		enrichedPosts = append(enrichedPosts, postData)
@@ -62,9 +74,35 @@ func getUserPostsHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, enrichedPosts)
 }
-func getUserPostHandler(c *gin.Context) {
 
+func getUserPostHandler(c *gin.Context) {
+	postID := c.Param("post_id")
+
+	post, err := db.GetPostByID(postID)
+	if err != nil {
+		retInternalServErr(err, c)
+		return
+	}
+
+	// Enhance post with base64 encoded image
+	postData := map[string]interface{}{
+		"id":         post.ID,
+		"farmer_id":  post.FarmerID,
+		"farm_id":    post.FarmID,
+		"content":    post.Content,
+		"image_url":  post.ImageURL,
+		"created_at": post.CreatedAt,
+	}
+
+	// Encode image if available
+	if base64Image, contentType, err := encodeImageToBase64(post.ImageURL); err == nil && base64Image != "" {
+		postData["image_base64"] = base64Image
+		postData["image_content_type"] = contentType
+	}
+
+	c.JSON(http.StatusOK, postData)
 }
+
 func postUserPostHandler(c *gin.Context) {
 
 }

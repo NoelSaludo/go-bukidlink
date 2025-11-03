@@ -447,3 +447,34 @@ func TestGetUsersPosts(t *testing.T) {
 		}
 	}
 }
+
+func TestGetUserPost(t *testing.T) {
+	server := setupServer()
+
+	// Use a known post ID from your test data
+	// You may need to adjust this ID based on your test database
+	postID := "11111111-1111-1111-1111-111111111111"
+
+	req, _ := http.NewRequest(http.MethodGet, "/userpost/post/"+postID, nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Response includes post data with optional base64 encoded image
+	var post map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &post)
+	require.NoError(t, err)
+	assert.NotEmpty(t, post)
+
+	// Verify that post has the expected fields
+	assert.NotEmpty(t, post["id"])
+	assert.NotEmpty(t, post["farmer_id"])
+	assert.NotEmpty(t, post["content"])
+
+	// If image_url exists, verify base64 and content_type are included
+	if post["image_url"] != nil && post["image_url"] != "" {
+		assert.NotEmpty(t, post["image_base64"], "image_base64 should be present when image_url exists")
+		assert.NotEmpty(t, post["image_content_type"], "image_content_type should be present when image_url exists")
+	}
+}
