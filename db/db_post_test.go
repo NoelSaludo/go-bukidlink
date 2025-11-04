@@ -15,9 +15,17 @@ func TestGetPostsByBlock(t *testing.T) {
 	assert.NotNil(t, posts)
 	assert.LessOrEqual(t, len(posts), 100)
 
-	// Verify that comments are included
+	// Verify that comments are included with user info
 	for _, post := range posts {
 		assert.NotNil(t, post.Comments, "Comments should be initialized (not nil)")
+		// If post has comments, verify they include user info
+		for _, comment := range post.Comments {
+			assert.NotEmpty(t, comment.ID, "Comment should have ID")
+			assert.NotEmpty(t, comment.UserID, "Comment should have UserID")
+			assert.NotEmpty(t, comment.Username, "Comment should have Username")
+			// ProfilePicUrl can be empty but field should exist
+			assert.NotNil(t, comment.ProfilePicUrl, "Comment should have ProfilePicUrl field")
+		}
 	}
 }
 
@@ -29,6 +37,14 @@ func TestGetPostByID(t *testing.T) {
 	assert.NotNil(t, post)
 	assert.Equal(t, "11111111-1111-1111-1111-111111111111", post.ID)
 	assert.NotNil(t, post.Comments, "Comments should be initialized (not nil)")
+
+	// Verify comments include user info
+	for _, comment := range post.Comments {
+		assert.NotEmpty(t, comment.ID, "Comment should have ID")
+		assert.NotEmpty(t, comment.UserID, "Comment should have UserID")
+		assert.NotEmpty(t, comment.Username, "Comment should have Username")
+		// ProfilePicUrl can be empty but field should exist (not checking NotEmpty)
+	}
 }
 
 func TestUpdatePost(t *testing.T) {
@@ -45,9 +61,16 @@ func TestGetPostsByUser(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, posts)
 
-	// Verify that comments are included for each post
+	// Verify that comments are included for each post with user info
 	for _, post := range posts {
 		assert.NotNil(t, post.Comments, "Comments should be initialized (not nil)")
+		// If post has comments, verify they include user info
+		for _, comment := range post.Comments {
+			assert.NotEmpty(t, comment.ID, "Comment should have ID")
+			assert.NotEmpty(t, comment.UserID, "Comment should have UserID")
+			assert.NotEmpty(t, comment.Username, "Comment should have Username")
+			// ProfilePicUrl can be empty but field should exist
+		}
 	}
 }
 

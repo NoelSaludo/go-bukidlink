@@ -14,11 +14,13 @@ type Post struct {
 }
 
 type Comment struct {
-	ID        string    `json:"id"`
-	PostID    string    `json:"post_id"`
-	UserID    string    `json:"user_id"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
+	ID            string    `json:"id"`
+	PostID        string    `json:"post_id"`
+	UserID        string    `json:"user_id"`
+	Content       string    `json:"content"`
+	CreatedAt     time.Time `json:"created_at"`
+	Username      string    `json:"username"`
+	ProfilePicUrl string    `json:"profile_pic_url"`
 }
 
 // Function to get all 100 posts by block
@@ -115,9 +117,16 @@ func InsertPost(post Post) error {
 	return err
 }
 
-// getCommentsByPostID retrieves all comments for a specific post
+// getCommentsByPostID retrieves all comments for a specific post with user info
 func getCommentsByPostID(postID string) ([]Comment, error) {
-	rows, err := db.Query(`SELECT id, post_id, user_id, content, created_at FROM "Comment" WHERE post_id = $1 ORDER BY created_at ASC`, postID)
+	query := `
+		SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, u.username, u.profile_pic_url 
+		FROM "Comment" c
+		JOIN "User" u ON c.user_id = u.id
+		WHERE c.post_id = $1 
+		ORDER BY c.created_at ASC
+	`
+	rows, err := db.Query(query, postID)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +135,7 @@ func getCommentsByPostID(postID string) ([]Comment, error) {
 	var comments []Comment
 	for rows.Next() {
 		var comment Comment
-		if err := rows.Scan(&comment.ID, &comment.PostID, &comment.UserID, &comment.Content, &comment.CreatedAt); err != nil {
+		if err := rows.Scan(&comment.ID, &comment.PostID, &comment.UserID, &comment.Content, &comment.CreatedAt, &comment.Username, &comment.ProfilePicUrl); err != nil {
 			return nil, err
 		}
 		comments = append(comments, comment)
