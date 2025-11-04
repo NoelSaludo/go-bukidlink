@@ -13,6 +13,32 @@ import (
 	"github.com/google/uuid"
 )
 
+// EnrichedComment represents a comment with base64-encoded profile picture data
+type EnrichedComment struct {
+	ID                    string    `json:"id"`
+	PostID                string    `json:"post_id"`
+	UserID                string    `json:"user_id"`
+	Content               string    `json:"content"`
+	CreatedAt             time.Time `json:"created_at"`
+	Username              string    `json:"username"`
+	ProfilePicUrl         string    `json:"profile_pic_url"`
+	ProfilePicBase64      string    `json:"profile_pic_base64,omitempty"`
+	ProfilePicContentType string    `json:"profile_pic_content_type,omitempty"`
+}
+
+// EnrichedPost represents a post with base64-encoded image data and enriched comments
+type EnrichedPost struct {
+	ID               string            `json:"id"`
+	FarmerID         string            `json:"farmer_id"`
+	FarmID           *string           `json:"farm_id"`
+	Content          string            `json:"content"`
+	ImageURL         *string           `json:"image_url"`
+	CreatedAt        time.Time         `json:"created_at"`
+	Comments         []EnrichedComment `json:"comments"`
+	ImageBase64      string            `json:"image_base64,omitempty"`
+	ImageContentType string            `json:"image_content_type,omitempty"`
+}
+
 // encodeImageToBase64 reads an image file and returns base64 encoded data and content type
 func encodeImageToBase64(imageURL *string) (string, string, error) {
 	if imageURL == nil || *imageURL == "" {
@@ -87,22 +113,51 @@ func getUserPostsHandler(c *gin.Context) {
 	}
 
 	// Enhance posts with base64 encoded images
-	var enrichedPosts []map[string]interface{}
+	var enrichedPosts []EnrichedPost
 	for _, post := range posts {
-		postData := map[string]interface{}{
-			"id":         post.ID,
-			"farmer_id":  post.FarmerID,
-			"farm_id":    post.FarmID,
-			"content":    post.Content,
-			"image_url":  post.ImageURL,
-			"created_at": post.CreatedAt,
-			"comments":   post.Comments,
+		// Initialize empty slice for enriched comments (ensures JSON returns [] not null)
+		enrichedComments := make([]EnrichedComment, 0)
+
+		// Enrich all comments with base64-encoded profile pictures
+		for _, comment := range post.Comments {
+			enrichedComment := EnrichedComment{
+				ID:            comment.ID,
+				PostID:        comment.PostID,
+				UserID:        comment.UserID,
+				Content:       comment.Content,
+				CreatedAt:     comment.CreatedAt,
+				Username:      comment.Username,
+				ProfilePicUrl: comment.ProfilePicUrl,
+			}
+
+			// Encode profile picture if available
+			if comment.ProfilePicUrl != "" {
+				if base64Image, contentType, err := encodeImageToBase64(&comment.ProfilePicUrl); err == nil && base64Image != "" {
+					enrichedComment.ProfilePicBase64 = base64Image
+					enrichedComment.ProfilePicContentType = contentType
+				}
+			}
+
+			enrichedComments = append(enrichedComments, enrichedComment)
 		}
 
-		// Encode image if available
-		if base64Image, contentType, err := encodeImageToBase64(post.ImageURL); err == nil && base64Image != "" {
-			postData["image_base64"] = base64Image
-			postData["image_content_type"] = contentType
+		// Build post with enriched comments
+		postData := EnrichedPost{
+			ID:        post.ID,
+			FarmerID:  post.FarmerID,
+			FarmID:    post.FarmID,
+			Content:   post.Content,
+			ImageURL:  post.ImageURL,
+			CreatedAt: post.CreatedAt,
+			Comments:  enrichedComments,
+		}
+
+		// Encode post image if available
+		if post.ImageURL != nil {
+			if base64Image, contentType, err := encodeImageToBase64(post.ImageURL); err == nil && base64Image != "" {
+				postData.ImageBase64 = base64Image
+				postData.ImageContentType = contentType
+			}
 		}
 
 		enrichedPosts = append(enrichedPosts, postData)
@@ -120,24 +175,49 @@ func getUserPostHandler(c *gin.Context) {
 		return
 	}
 
-	// Enhance post with base64 encoded image
-	postData := map[string]interface{}{
-		"id":         post.ID,
-		"farmer_id":  post.FarmerID,
-		"farm_id":    post.FarmID,
-		"content":    post.Content,
-		"image_url":  post.ImageURL,
-		"created_at": post.CreatedAt,
-		"comments":   post.Comments,
+	// Initialize empty slice for enriched comments (ensures JSON returns [] not null)
+	enrichedComments := make([]EnrichedComment, 0)
+
+	// Enrich all comments with base64-encoded profile pictures
+	for _, comment := range post.Comments {
+		enrichedComment := EnrichedComment{
+			ID:            comment.ID,
+			PostID:        comment.PostID,
+			UserID:        comment.UserID,
+			Content:       comment.Content,
+			CreatedAt:     comment.CreatedAt,
+			Username:      comment.Username,
+			ProfilePicUrl: comment.ProfilePicUrl,
+		}
+
+		// Encode profile picture if available
+		if comment.ProfilePicUrl != "" {
+			if base64Image, contentType, err := encodeImageToBase64(&comment.ProfilePicUrl); err == nil && base64Image != "" {
+				enrichedComment.ProfilePicBase64 = base64Image
+				enrichedComment.ProfilePicContentType = contentType
+			}
+		}
+
+		enrichedComments = append(enrichedComments, enrichedComment)
 	}
 
-	// Encode image if available
-	if base64Image, contentType, err := encodeImageToBase64(post.ImageURL); err == nil && base64Image != "" {
-		postData["image_base64"] = base64Image
-		postData["image_content_type"] = contentType
-	} else {
-		retInternalServErr(err, c)
-		return
+	// Build post with enriched comments
+	postData := EnrichedPost{
+		ID:        post.ID,
+		FarmerID:  post.FarmerID,
+		FarmID:    post.FarmID,
+		Content:   post.Content,
+		ImageURL:  post.ImageURL,
+		CreatedAt: post.CreatedAt,
+		Comments:  enrichedComments,
+	}
+
+	// Encode post image if available
+	if post.ImageURL != nil {
+		if base64Image, contentType, err := encodeImageToBase64(post.ImageURL); err == nil && base64Image != "" {
+			postData.ImageBase64 = base64Image
+			postData.ImageContentType = contentType
+		}
 	}
 
 	c.JSON(http.StatusOK, postData)
