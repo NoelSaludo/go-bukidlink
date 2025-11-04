@@ -14,6 +14,11 @@ func TestGetPostsByBlock(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, posts)
 	assert.LessOrEqual(t, len(posts), 100)
+
+	// Verify that comments are included
+	for _, post := range posts {
+		assert.NotNil(t, post.Comments, "Comments should be initialized (not nil)")
+	}
 }
 
 func TestGetPostByID(t *testing.T) {
@@ -23,12 +28,13 @@ func TestGetPostByID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, post)
 	assert.Equal(t, "11111111-1111-1111-1111-111111111111", post.ID)
+	assert.NotNil(t, post.Comments, "Comments should be initialized (not nil)")
 }
 
 func TestUpdatePost(t *testing.T) {
 	_ = SetupDatabase()
 
-	err := UpdatePost("11111111-1111-1111-1111-111111111111", "Updated content", "updated-image-url.jpg")
+	err := UpdatePost("11111111-1111-1111-1111-111111111111", "Updated content", "resources/images/updated-image-url.jpg")
 	assert.NoError(t, err)
 }
 
@@ -38,6 +44,11 @@ func TestGetPostsByUser(t *testing.T) {
 	posts, err := GetPostsByUser("d30869ec-fb97-46d8-85a3-82608c01f803")
 	assert.NoError(t, err)
 	assert.NotNil(t, posts)
+
+	// Verify that comments are included for each post
+	for _, post := range posts {
+		assert.NotNil(t, post.Comments, "Comments should be initialized (not nil)")
+	}
 }
 
 func TestInsertAndDeletePost(t *testing.T) {
@@ -61,6 +72,8 @@ func TestInsertAndDeletePost(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, insertedPost)
 	assert.Equal(t, newPost.ID, insertedPost.ID)
+	assert.NotNil(t, insertedPost.Comments, "Comments should be initialized (not nil)")
+	assert.Empty(t, insertedPost.Comments, "New post should have no comments")
 
 	// Delete the post
 	err = DeletePost(newPost.ID)

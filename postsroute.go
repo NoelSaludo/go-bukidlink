@@ -96,6 +96,7 @@ func getUserPostsHandler(c *gin.Context) {
 			"content":    post.Content,
 			"image_url":  post.ImageURL,
 			"created_at": post.CreatedAt,
+			"comments":   post.Comments,
 		}
 
 		// Encode image if available
@@ -127,12 +128,16 @@ func getUserPostHandler(c *gin.Context) {
 		"content":    post.Content,
 		"image_url":  post.ImageURL,
 		"created_at": post.CreatedAt,
+		"comments":   post.Comments,
 	}
 
 	// Encode image if available
 	if base64Image, contentType, err := encodeImageToBase64(post.ImageURL); err == nil && base64Image != "" {
 		postData["image_base64"] = base64Image
 		postData["image_content_type"] = contentType
+	} else {
+		retInternalServErr(err, c)
+		return
 	}
 
 	c.JSON(http.StatusOK, postData)

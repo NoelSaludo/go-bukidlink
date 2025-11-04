@@ -449,11 +449,22 @@ curl http://localhost:8080/userpost/d30869ec-fb97-46d8-85a3-82608c01f803
         "content": "Exploring new farming techniques at Sunny Fields.",
         "image_url": "resources/images/11111111-1111-1111-1111-111111111111_post.png",
         "created_at": "2025-10-30T14:51:36Z",
+        "comments": [
+            {
+                "id": "c1111111-1111-1111-1111-111111111111",
+                "post_id": "11111111-1111-1111-1111-111111111111",
+                "user_id": "d30869ec-fb97-46d8-85a3-82608c01f803",
+                "content": "Great farming technique!",
+                "created_at": "2025-10-30T15:00:00Z"
+            }
+        ],
         "image_base64": "iVBORw0KGgoAAAANSUhEUgAA...",
         "image_content_type": "image/png"
     }
 ]
 ```
+
+**Note**: The `comments` array contains all comments for each post, ordered by creation time (oldest first). If a post has no comments, the array will be empty `[]`.
 
 ### GET /userpost/post/:post_id
 **Purpose**: Get a specific post by ID, with image encoded as base64.
@@ -477,10 +488,28 @@ curl http://localhost:8080/userpost/post/11111111-1111-1111-1111-111111111111
     "content": "Exploring new farming techniques at Sunny Fields.",
     "image_url": "resources/images/11111111-1111-1111-1111-111111111111_post.png",
     "created_at": "2025-10-30T14:51:36Z",
+    "comments": [
+        {
+            "id": "c1111111-1111-1111-1111-111111111111",
+            "post_id": "11111111-1111-1111-1111-111111111111",
+            "user_id": "d30869ec-fb97-46d8-85a3-82608c01f803",
+            "content": "Great farming technique!",
+            "created_at": "2025-10-30T15:00:00Z"
+        },
+        {
+            "id": "c2222222-2222-2222-2222-222222222222",
+            "post_id": "11111111-1111-1111-1111-111111111111",
+            "user_id": "c6554794-849f-4338-87c5-6db2e2f76514",
+            "content": "Thanks for sharing this!",
+            "created_at": "2025-10-30T16:30:00Z"
+        }
+    ],
     "image_base64": "iVBORw0KGgoAAAANSUhEUgAA...",
     "image_content_type": "image/png"
 }
 ```
+
+**Note**: The `comments` array contains all comments for the post, ordered chronologically (oldest first). Empty array `[]` if no comments exist.
 
 ### POST /userpost
 **Purpose**: Create a new post with optional image upload.

@@ -10,6 +10,15 @@ type Post struct {
 	Content   string    `json:"content"`
 	ImageURL  *string   `json:"image_url"`
 	CreatedAt time.Time `json:"created_at"`
+	Comments  []Comment `json:"comments"`
+}
+
+type Comment struct {
+	ID        string    `json:"id"`
+	PostID    string    `json:"post_id"`
+	UserID    string    `json:"user_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // Function to get all 100 posts by block
@@ -27,6 +36,14 @@ func GetPostsByBlock(block int) ([]Post, error) {
 		if err := rows.Scan(&post.ID, &post.FarmerID, &post.FarmID, &post.Content, &post.ImageURL, &post.CreatedAt); err != nil {
 			return nil, err
 		}
+
+		// Fetch comments for this post
+		comments, err := getCommentsByPostID(post.ID)
+		if err != nil {
+			return nil, err
+		}
+		post.Comments = comments
+
 		posts = append(posts, post)
 	}
 	return posts, nil
@@ -40,6 +57,14 @@ func GetPostByID(postID string) (*Post, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Fetch comments for this post
+	comments, err := getCommentsByPostID(post.ID)
+	if err != nil {
+		return nil, err
+	}
+	post.Comments = comments
+
 	return &post, nil
 }
 
@@ -69,6 +94,14 @@ func GetPostsByUser(userID string) ([]Post, error) {
 		if err := rows.Scan(&post.ID, &post.FarmerID, &post.FarmID, &post.Content, &post.ImageURL, &post.CreatedAt); err != nil {
 			return nil, err
 		}
+
+		// Fetch comments for this post
+		comments, err := getCommentsByPostID(post.ID)
+		if err != nil {
+			return nil, err
+		}
+		post.Comments = comments
+
 		posts = append(posts, post)
 	}
 	return posts, nil
@@ -80,4 +113,29 @@ func InsertPost(post Post) error {
               VALUES ($1, $2, $3, $4, $5, $6)`
 	_, err := db.Exec(query, post.ID, post.FarmerID, post.FarmID, post.Content, post.ImageURL, post.CreatedAt)
 	return err
+}
+
+// getCommentsByPostID retrieves all comments for a specific post
+func getCommentsByPostID(postID string) ([]Comment, error) {
+	rows, err := db.Query(`SELECT id, post_id, user_id, content, created_at FROM "Comment" WHERE post_id = $1 ORDER BY created_at ASC`, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var comment Comment
+		if err := rows.Scan(&comment.ID, &comment.PostID, &comment.UserID, &comment.Content, &comment.CreatedAt); err != nil {
+			return nil, err
+		}
+		comments = append(comments, comment)
+	}
+
+	// Return empty slice instead of nil if no comments
+	if comments == nil {
+		comments = []Comment{}
+	}
+
+	return comments, nil
 }

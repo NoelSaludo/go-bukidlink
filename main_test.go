@@ -440,6 +440,12 @@ func TestGetUsersPosts(t *testing.T) {
 		assert.NotEmpty(t, post["farmer_id"])
 		assert.NotEmpty(t, post["content"])
 
+		// Verify comments field exists and is an array
+		assert.NotNil(t, post["comments"], "comments field should be present")
+		comments, ok := post["comments"].([]interface{})
+		assert.True(t, ok, "comments should be an array")
+		assert.NotNil(t, comments, "comments array should not be nil")
+
 		// If image_url exists, verify base64 and content_type are included
 		if post["image_url"] != nil && post["image_url"] != "" {
 			assert.NotEmpty(t, post["image_base64"], "image_base64 should be present when image_url exists")
@@ -461,6 +467,10 @@ func TestGetUserPost(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
+	if w.Code != http.StatusOK {
+		log.Fatalf("Response Body: %s", w.Body.String())
+	}
+
 	// Response includes post data with optional base64 encoded image
 	var post map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &post)
@@ -471,6 +481,12 @@ func TestGetUserPost(t *testing.T) {
 	assert.NotEmpty(t, post["id"])
 	assert.NotEmpty(t, post["farmer_id"])
 	assert.NotEmpty(t, post["content"])
+
+	// Verify comments field exists and is an array
+	assert.NotNil(t, post["comments"], "comments field should be present")
+	comments, ok := post["comments"].([]interface{})
+	assert.True(t, ok, "comments should be an array")
+	assert.NotNil(t, comments, "comments array should not be nil")
 
 	// If image_url exists, verify base64 and content_type are included
 	if post["image_url"] != nil && post["image_url"] != "" {
@@ -578,6 +594,12 @@ func TestUpdateUserPost(t *testing.T) {
 	var updatedPost map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &updatedPost)
 	assert.Equal(t, "Updated post content", updatedPost["content"])
+
+	// Verify comments field exists in updated post
+	assert.NotNil(t, updatedPost["comments"], "comments field should be present in updated post")
+	comments, ok := updatedPost["comments"].([]interface{})
+	assert.True(t, ok, "comments should be an array")
+	assert.NotNil(t, comments, "comments array should not be nil")
 
 	// Test 2: Update image only
 	updatePayload2 := map[string]interface{}{
