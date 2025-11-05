@@ -34,6 +34,7 @@ type EnrichedPost struct {
 	Content          string            `json:"content"`
 	ImageURL         *string           `json:"image_url"`
 	CreatedAt        time.Time         `json:"created_at"`
+	LikeCount        int               `json:"like_count"`
 	Comments         []EnrichedComment `json:"comments"`
 	ImageBase64      string            `json:"image_base64,omitempty"`
 	ImageContentType string            `json:"image_content_type,omitempty"`
@@ -149,6 +150,7 @@ func getUserPostsHandler(c *gin.Context) {
 			Content:   post.Content,
 			ImageURL:  post.ImageURL,
 			CreatedAt: post.CreatedAt,
+			LikeCount: post.LikeCount,
 			Comments:  enrichedComments,
 		}
 
@@ -209,6 +211,7 @@ func getUserPostHandler(c *gin.Context) {
 		Content:   post.Content,
 		ImageURL:  post.ImageURL,
 		CreatedAt: post.CreatedAt,
+		LikeCount: post.LikeCount,
 		Comments:  enrichedComments,
 	}
 
