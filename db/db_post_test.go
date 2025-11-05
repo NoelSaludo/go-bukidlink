@@ -17,6 +17,9 @@ func TestGetPostsByBlock(t *testing.T) {
 
 	// Verify that comments are included with user info
 	for _, post := range posts {
+		// Verify like_count field exists and is non-negative
+		assert.GreaterOrEqual(t, post.LikeCount, 0, "LikeCount should be non-negative")
+
 		assert.NotNil(t, post.Comments, "Comments should be initialized (not nil)")
 		// If post has comments, verify they include user info
 		for _, comment := range post.Comments {
@@ -36,6 +39,10 @@ func TestGetPostByID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, post)
 	assert.Equal(t, "11111111-1111-1111-1111-111111111111", post.ID)
+
+	// Verify like_count field exists and is non-negative
+	assert.GreaterOrEqual(t, post.LikeCount, 0, "LikeCount should be non-negative")
+
 	assert.NotNil(t, post.Comments, "Comments should be initialized (not nil)")
 
 	// Verify comments include user info
@@ -63,6 +70,9 @@ func TestGetPostsByUser(t *testing.T) {
 
 	// Verify that comments are included for each post with user info
 	for _, post := range posts {
+		// Verify like_count field exists and is non-negative
+		assert.GreaterOrEqual(t, post.LikeCount, 0, "LikeCount should be non-negative")
+
 		assert.NotNil(t, post.Comments, "Comments should be initialized (not nil)")
 		// If post has comments, verify they include user info
 		for _, comment := range post.Comments {
@@ -95,6 +105,10 @@ func TestInsertAndDeletePost(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, insertedPost)
 	assert.Equal(t, newPost.ID, insertedPost.ID)
+
+	// Verify like_count is 0 for new post
+	assert.Equal(t, 0, insertedPost.LikeCount, "New post should have 0 likes")
+
 	assert.NotNil(t, insertedPost.Comments, "Comments should be initialized (not nil)")
 	assert.Empty(t, insertedPost.Comments, "New post should have no comments")
 

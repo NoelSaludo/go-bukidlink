@@ -10,6 +10,7 @@ type Post struct {
 	Content   string    `json:"content"`
 	ImageURL  *string   `json:"image_url"`
 	CreatedAt time.Time `json:"created_at"`
+	LikeCount int       `json:"like_count"`
 	Comments  []Comment `json:"comments"`
 }
 
@@ -26,7 +27,16 @@ type Comment struct {
 // Function to get all 100 posts by block
 func GetPostsByBlock(block int) ([]Post, error) {
 	offset := (block - 1) * 100
-	rows, err := db.Query(`SELECT id, farmer_id, farm_id, content, image_url, created_at FROM "Posts" ORDER BY created_at DESC LIMIT 100 OFFSET $1`, offset)
+	query := `
+		SELECT p.id, p.farmer_id, p.farm_id, p.content, p.image_url, p.created_at, 
+		       COALESCE(COUNT(l.id), 0) as like_count
+		FROM "Posts" p
+		LEFT JOIN "Likes" l ON p.id = l.post_id
+		GROUP BY p.id, p.farmer_id, p.farm_id, p.content, p.image_url, p.created_at
+		ORDER BY p.created_at DESC 
+		LIMIT 100 OFFSET $1
+	`
+	rows, err := db.Query(query, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +45,7 @@ func GetPostsByBlock(block int) ([]Post, error) {
 	var posts []Post
 	for rows.Next() {
 		var post Post
-		if err := rows.Scan(&post.ID, &post.FarmerID, &post.FarmID, &post.Content, &post.ImageURL, &post.CreatedAt); err != nil {
+		if err := rows.Scan(&post.ID, &post.FarmerID, &post.FarmID, &post.Content, &post.ImageURL, &post.CreatedAt, &post.LikeCount); err != nil {
 			return nil, err
 		}
 
@@ -54,8 +64,16 @@ func GetPostsByBlock(block int) ([]Post, error) {
 // Function to get a specific post
 func GetPostByID(postID string) (*Post, error) {
 	var post Post
-	err := db.QueryRow(`SELECT id, farmer_id, farm_id, content, image_url, created_at FROM "Posts" WHERE id = $1`, postID).
-		Scan(&post.ID, &post.FarmerID, &post.FarmID, &post.Content, &post.ImageURL, &post.CreatedAt)
+	query := `
+		SELECT p.id, p.farmer_id, p.farm_id, p.content, p.image_url, p.created_at, 
+		       COALESCE(COUNT(l.id), 0) as like_count
+		FROM "Posts" p
+		LEFT JOIN "Likes" l ON p.id = l.post_id
+		WHERE p.id = $1
+		GROUP BY p.id, p.farmer_id, p.farm_id, p.content, p.image_url, p.created_at
+	`
+	err := db.QueryRow(query, postID).
+		Scan(&post.ID, &post.FarmerID, &post.FarmID, &post.Content, &post.ImageURL, &post.CreatedAt, &post.LikeCount)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +102,16 @@ func UpdatePost(postID string, content string, imageURL string) error {
 
 // Function to get all posts by a user
 func GetPostsByUser(userID string) ([]Post, error) {
-	rows, err := db.Query(`SELECT id, farmer_id, farm_id, content, image_url, created_at FROM "Posts" WHERE farmer_id = $1 ORDER BY created_at DESC`, userID)
+	query := `
+		SELECT p.id, p.farmer_id, p.farm_id, p.content, p.image_url, p.created_at, 
+		       COALESCE(COUNT(l.id), 0) as like_count
+		FROM "Posts" p
+		LEFT JOIN "Likes" l ON p.id = l.post_id
+		WHERE p.farmer_id = $1
+		GROUP BY p.id, p.farmer_id, p.farm_id, p.content, p.image_url, p.created_at
+		ORDER BY p.created_at DESC
+	`
+	rows, err := db.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +120,7 @@ func GetPostsByUser(userID string) ([]Post, error) {
 	var posts []Post
 	for rows.Next() {
 		var post Post
-		if err := rows.Scan(&post.ID, &post.FarmerID, &post.FarmID, &post.Content, &post.ImageURL, &post.CreatedAt); err != nil {
+		if err := rows.Scan(&post.ID, &post.FarmerID, &post.FarmID, &post.Content, &post.ImageURL, &post.CreatedAt, &post.LikeCount); err != nil {
 			return nil, err
 		}
 
