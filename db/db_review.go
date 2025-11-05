@@ -27,7 +27,8 @@ func QueryUsersItem(userid string) ([]Item, error) {
        i.description,
        i.costpkilo,
        i.category,
-       i.amount
+       i.amount,
+       i.img_path
 		FROM "User" u
 		JOIN "UsersItem" ui ON u.id = ui.user_id
 		JOIN "Item" i ON i.id = ui.item_id
