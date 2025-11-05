@@ -123,6 +123,15 @@ func Test100Items(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &itemEnvelopes)
 	require.NoError(t, err)
 	assert.NotEmpty(t, itemEnvelopes)
+
+	// Verify each item has either img_path or item_pic data
+	for _, envelope := range itemEnvelopes {
+		assert.NotEmpty(t, envelope.Item.Id, "Item should have an ID")
+		// Item should have img_path set or item_pic data available
+		hasImagePath := envelope.Item.ImgPath != ""
+		hasItemPic := len(envelope.ItemPic) > 0
+		assert.True(t, hasImagePath || hasItemPic, "Item should have either img_path or item_pic data")
+	}
 }
 
 func TestGetItemsByCategory(t *testing.T) {
@@ -145,6 +154,10 @@ func TestGetItemsByCategory(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		for _, envelope := range itemEnvelopes {
 			assert.Equal(t, cat, envelope.Item.Category)
+			// Verify each item has either img_path or item_pic data
+			hasImagePath := envelope.Item.ImgPath != ""
+			hasItemPic := len(envelope.ItemPic) > 0
+			assert.True(t, hasImagePath || hasItemPic, "Item should have either img_path or item_pic data")
 		}
 	}
 
@@ -191,6 +204,11 @@ func TestGetItemById(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err == nil && envelope.Item.Id != "" {
 		assert.NotEmpty(t, envelope.Item)
 		assert.NotEmpty(t, envelope.Item.Rating)
+
+		// Verify item has either img_path or item_pic data
+		hasImagePath := envelope.Item.ImgPath != ""
+		hasItemPic := len(envelope.ItemPic) > 0
+		assert.True(t, hasImagePath || hasItemPic, "Item should have either img_path or item_pic data")
 		return
 	}
 
@@ -202,6 +220,7 @@ func TestGetItemById(t *testing.T) {
 
 	assert.NotEmpty(t, item)
 	assert.NotEmpty(t, item.Rating)
+	assert.NotEmpty(t, item.ImgPath, "Item should have img_path")
 }
 
 func TestPostItem(t *testing.T) {
@@ -243,6 +262,14 @@ func TestPostItem(t *testing.T) {
 		log.Fatalf("Response Body: %s", w.Body.String())
 	}
 	assert.Equal(t, http.StatusCreated, w.Code)
+
+	// Verify response contains item_id
+	var response map[string]interface{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	itemID, ok := response["item_id"].(string)
+	require.True(t, ok, "Response should contain item_id")
+	assert.NotEmpty(t, itemID, "Item ID should not be empty")
 }
 
 func TestOrderAPIWorkflow(t *testing.T) {
