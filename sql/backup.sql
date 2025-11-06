@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict FhezmbIePXo9E5xQqv1CdPbadJAazYuHNcUIyXDT20SAXUqg3l7MiqfJoHmEYM0
+\restrict 01IqbNGPYt75V4Ug34Kck1bhaR4Q3wOBQDypM4QruMTM3GqvbQwrhBUcJCdrdLh
 
 -- Dumped from database version 18.0 (Ubuntu 18.0-1.pgdg24.04+3)
 -- Dumped by pg_dump version 18.0 (Ubuntu 18.0-1.pgdg24.04+3)
@@ -106,6 +106,48 @@ CREATE TABLE public."CartItem" (
 ALTER TABLE public."CartItem" OWNER TO postgres;
 
 --
+-- Name: Comment; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Comment" (
+    id uuid CONSTRAINT comment_id_not_null NOT NULL,
+    user_id uuid CONSTRAINT comment_user_id_not_null NOT NULL,
+    post_id uuid CONSTRAINT comment_post_id_not_null NOT NULL,
+    content text CONSTRAINT comment_content_not_null NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public."Comment" OWNER TO postgres;
+
+--
+-- Name: Farm; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Farm" (
+    id uuid CONSTRAINT farm_id_not_null NOT NULL,
+    farmer_id uuid CONSTRAINT farm_farmer_id_not_null NOT NULL,
+    name character varying(100) CONSTRAINT farm_name_not_null NOT NULL,
+    address text CONSTRAINT farm_address_not_null NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public."Farm" OWNER TO postgres;
+
+--
+-- Name: Farmer; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Farmer" (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL
+);
+
+
+ALTER TABLE public."Farmer" OWNER TO postgres;
+
+--
 -- Name: Item; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -121,6 +163,20 @@ CREATE TABLE public."Item" (
 
 
 ALTER TABLE public."Item" OWNER TO postgres;
+
+--
+-- Name: Likes; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Likes" (
+    id uuid CONSTRAINT likes_id_not_null NOT NULL,
+    user_id uuid CONSTRAINT likes_user_id_not_null NOT NULL,
+    post_id uuid CONSTRAINT likes_post_id_not_null NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public."Likes" OWNER TO postgres;
 
 --
 -- Name: Order; Type: TABLE; Schema: public; Owner: postgres
@@ -151,6 +207,22 @@ CREATE TABLE public."OrderItem" (
 
 
 ALTER TABLE public."OrderItem" OWNER TO postgres;
+
+--
+-- Name: Posts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Posts" (
+    id uuid CONSTRAINT posts_id_not_null NOT NULL,
+    farmer_id uuid CONSTRAINT posts_farmer_id_not_null NOT NULL,
+    farm_id uuid,
+    content text CONSTRAINT posts_content_not_null NOT NULL,
+    image_url character varying(255) DEFAULT 'resources/images/no-image.jpg'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public."Posts" OWNER TO postgres;
 
 --
 -- Name: Review; Type: TABLE; Schema: public; Owner: postgres
@@ -242,6 +314,48 @@ COPY public."CartItem" (id, cart_id, item_id, quantity) FROM stdin;
 
 
 --
+-- Data for Name: Comment; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Comment" (id, user_id, post_id, content, created_at) FROM stdin;
+c0000001-0001-0001-0001-000000000001	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-1111-1111-1111-111111111111	Great farming technique! Looking forward to trying this on my own farm.	2025-10-30 15:00:00
+c0000001-0001-0001-0001-000000000002	c6554794-849f-4338-87c5-6db2e2f76514	11111111-1111-1111-1111-111111111111	Thanks for sharing this! Very informative.	2025-10-30 16:30:00
+c0000001-0001-0001-0001-000000000003	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	11111111-1111-1111-1111-111111111111	This is exactly what I needed. Appreciate the detailed explanation!	2025-10-30 18:15:00
+c0000002-0002-0002-0002-000000000001	c6554794-849f-4338-87c5-6db2e2f76514	22222222-2222-2222-2222-222222222222	I've been using crop rotation for years. Works wonders!	2025-10-30 15:45:00
+c0000002-0002-0002-0002-000000000002	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	22222222-2222-2222-2222-222222222222	Which crops do you recommend rotating together?	2025-10-30 17:20:00
+c0000003-0003-0003-0003-000000000001	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	33333333-3333-3333-3333-333333333333	Wow! That's an amazing harvest. Congratulations!	2025-10-31 09:00:00
+c0000003-0003-0003-0003-000000000002	c6554794-849f-4338-87c5-6db2e2f76514	33333333-3333-3333-3333-333333333333	Your hard work really paid off. Well done!	2025-10-31 10:30:00
+c0000003-0003-0003-0003-000000000003	d30869ec-fb97-46d8-85a3-82608c01f803	33333333-3333-3333-3333-333333333333	Thank you all for the kind words!	2025-10-31 12:00:00
+c0000004-0004-0004-0004-000000000001	d30869ec-fb97-46d8-85a3-82608c01f803	44444444-4444-4444-4444-444444444444	Organic farming is the future! Keep it up!	2025-10-31 14:00:00
+c0000004-0004-0004-0004-000000000002	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	44444444-4444-4444-4444-444444444444	Where do you get your organic fertilizer from?	2025-10-31 15:30:00
+c0000005-0005-0005-0005-000000000001	d30869ec-fb97-46d8-85a3-82608c01f803	55555555-5555-5555-5555-555555555555	That irrigation system looks very efficient!	2025-11-01 08:30:00
+c0000005-0005-0005-0005-000000000002	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	55555555-5555-5555-5555-555555555555	How much did the setup cost? I'm interested in installing something similar.	2025-11-01 10:00:00
+c0000005-0005-0005-0005-000000000003	c6554794-849f-4338-87c5-6db2e2f76514	55555555-5555-5555-5555-555555555555	I can help with the installation if you need assistance!	2025-11-01 11:45:00
+c0000006-0006-0006-0006-000000000001	d30869ec-fb97-46d8-85a3-82608c01f803	66666666-6666-6666-6666-666666666666	Natural pest control is always better than chemicals!	2025-11-01 13:00:00
+c0000006-0006-0006-0006-000000000002	c6554794-849f-4338-87c5-6db2e2f76514	66666666-6666-6666-6666-666666666666	What plants do you use to repel pests naturally?	2025-11-01 14:30:00
+\.
+
+
+--
+-- Data for Name: Farm; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Farm" (id, farmer_id, name, address, created_at) FROM stdin;
+11111111-aaaa-aaaa-aaaa-111111111111	d30869ec-fb97-46d8-85a3-82608c01f803	Sunny Fields	123 Sunshine Road, Springfield	2025-10-30 08:00:00
+22222222-bbbb-bbbb-bbbb-222222222222	c6554794-849f-4338-87c5-6db2e2f76514	Green Valley	456 Greenway Blvd, Greenville	2025-10-31 09:00:00
+33333333-cccc-cccc-cccc-333333333333	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	Harvest Haven	789 Harvest Lane, Farmtown	2025-11-01 10:00:00
+\.
+
+
+--
+-- Data for Name: Farmer; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Farmer" (id, user_id) FROM stdin;
+\.
+
+
+--
 -- Data for Name: Item; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -258,6 +372,17 @@ d6767055-1150-43e2-86e6-8417eb7b52b7	Test Item	This is a test item	50	10	dairy	r
 80d10778-4bf8-4827-95dd-25bc063ca3fe	Test Item	This is a test item	50	10	dairy	resources/images/Test Item_pic.png
 b59f6931-97c6-46cd-b6e7-3b1f39ece849	Test Item	This is a test item	50	10	dairy	resources/images/Test Item_pic.png
 dbe42e07-f53b-40a7-b3fe-90e03106a2ae	Test Item	This is a test item	50	10	dairy	resources/images/Test Item_pic.png
+369a3beb-8e4d-4bb3-8e44-971866913977	Test Item	This is a test item	50	10	dairy	resources/images/Test Item_pic.png
+7e478553-598a-49bf-9488-2289b258f830	Test Item	This is a test item	50	10	dairy	resources/images/Test Item_pic.png
+af8b4666-d419-4dc0-8f85-c753e86f4cea	Test Item	This is a test item	50	10	dairy	resources/images/Test Item_pic.png
+\.
+
+
+--
+-- Data for Name: Likes; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Likes" (id, user_id, post_id, created_at) FROM stdin;
 \.
 
 
@@ -277,6 +402,7 @@ f97c3426-d2fa-441f-a934-5260b5f1499b	d30869ec-fb97-46d8-85a3-82608c01f803	2025-1
 0b38e06b-1db0-429c-8926-9ef89c7616db	d30869ec-fb97-46d8-85a3-82608c01f803	2025-10-30 17:41:11.453904+08	5.00	Shipping
 a854ad9d-5b27-4399-b71e-6a92c2cae961	d30869ec-fb97-46d8-85a3-82608c01f803	2025-10-30 18:21:14.795816+08	5.00	Shipping
 9b386052-49a8-4003-8f6e-b4862ddf70b5	d30869ec-fb97-46d8-85a3-82608c01f803	2025-10-31 09:44:06.368392+08	5.00	Shipping
+6d533161-b7eb-4eed-9365-3911e88674b1	d30869ec-fb97-46d8-85a3-82608c01f803	2025-11-05 20:54:16.369795+08	5.00	Shipping
 \.
 
 
@@ -307,6 +433,27 @@ eeeae196-4c38-4992-b5fe-afe432524748	a854ad9d-5b27-4399-b71e-6a92c2cae961	a3e1b9
 cce6c6e8-bf80-420f-a7bc-f9e4b01f9fba	a854ad9d-5b27-4399-b71e-6a92c2cae961	c9d3e8a1-55b2-4f66-a123-333333333333	1	3.00
 950428d1-440b-4c0c-947a-7b0e87993137	9b386052-49a8-4003-8f6e-b4862ddf70b5	a3e1b9f2-7d94-4d3a-9b4a-111111111111	2	1.00
 8748c4fc-b48f-4cd0-8d90-404a646f11f1	9b386052-49a8-4003-8f6e-b4862ddf70b5	c9d3e8a1-55b2-4f66-a123-333333333333	1	3.00
+35e177b1-58a1-4e11-b6a4-43c72d06f339	6d533161-b7eb-4eed-9365-3911e88674b1	a3e1b9f2-7d94-4d3a-9b4a-111111111111	2	1.00
+d6adbca9-46df-4528-a19e-e76620c9cce2	6d533161-b7eb-4eed-9365-3911e88674b1	c9d3e8a1-55b2-4f66-a123-333333333333	1	3.00
+\.
+
+
+--
+-- Data for Name: Posts; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Posts" (id, farmer_id, farm_id, content, image_url, created_at) FROM stdin;
+22222222-2222-2222-2222-222222222222	c6554794-849f-4338-87c5-6db2e2f76514	22222222-bbbb-bbbb-bbbb-222222222222	Green Valley is now offering fresh organic produce!	resources/images/no-image.jpg	2025-10-31 10:00:00
+33333333-3333-3333-3333-333333333333	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	33333333-cccc-cccc-cccc-333333333333	Harvest Haven is expanding! Stay tuned for updates.	resources/images/no-image.jpg	2025-11-01 09:30:00
+44444444-4444-4444-4444-444444444444	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	Sunny Fields is hosting a community farming workshop!	resources/images/no-image.jpg	2025-11-02 10:00:00
+55555555-5555-5555-5555-555555555555	c6554794-849f-4338-87c5-6db2e2f76514	22222222-bbbb-bbbb-bbbb-222222222222	Green Valley introduces a new line of organic herbs.	resources/images/no-image.jpg	2025-11-02 12:00:00
+66666666-6666-6666-6666-666666666666	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	33333333-cccc-cccc-cccc-333333333333	Harvest Haven is now certified organic!	resources/images/no-image.jpg	2025-11-03 08:00:00
+9af3ee81-346e-4cb5-9eba-2390fedb16dd	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	This is a test post from JohnDoe.	resources/images/9af3ee81-346e-4cb5-9eba-2390fedb16dd_post.png	2025-11-03 17:28:26.212629
+11111111-1111-1111-1111-111111111111	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	Updated content	resources/images/updated-image-url.jpg	2025-10-30 14:51:36
+f66ea4c3-f169-46e0-af01-4b9666d745bc	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	Final updated content	resources/images/f66ea4c3-f169-46e0-af01-4b9666d745bc_post.png	2025-11-03 17:49:54.264288
+4683f7a1-72d4-40b7-a725-19387799bcb9	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	This is a test post from JohnDoe.	resources/images/4683f7a1-72d4-40b7-a725-19387799bcb9_post.png	2025-11-04 17:18:56.113634
+721b120c-a7ba-4f8e-bd90-db879713f475	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	This is a test post from JohnDoe.	resources/images/721b120c-a7ba-4f8e-bd90-db879713f475_post.png	2025-11-04 17:31:06.697544
+d37e8c39-6329-426c-b1e5-8b26a7826a89	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	This is a test post from JohnDoe.	resources/images/d37e8c39-6329-426c-b1e5-8b26a7826a89_post.png	2025-11-04 17:58:12.951623
 \.
 
 
@@ -331,6 +478,9 @@ COPY public."User" (id, username, password, email, profile_pic_url) FROM stdin;
 c6554794-849f-4338-87c5-6db2e2f76514	DanielGaliego	SirJ0elB@cay	danielgaliego@example.com	resources/images/blank_profile.svg
 d30869ec-fb97-46d8-85a3-82608c01f803	JohnDoe	P@ssw0rd	JohnDoe@example.com	resources/images/blank_profile.svg
 65ddb076-744c-40be-b90b-0b281149c9fa	JohnDoe	password123	JohnDoeee5d801c-ea99-402b-a739-cf834907db10@example.com	resources/images/JohnDoe_pfp.png
+9ae195a0-05ff-446b-99c0-e6f09a0150d1	JohnDoe	password123	JohnDoe42b2c16b-8779-4d26-8585-0e203f6b0dcb@example.com	resources/images/JohnDoe_pfp.png
+91254998-107c-4c10-b7f3-5ee4c21cebc2	JohnDoe	password123	JohnDoe785cf6da-2406-40f4-a4f5-7b72b4b0cbe0@example.com	resources/images/JohnDoe_pfp.png
+543255dd-5325-4d3f-bcd2-ee6f8ac87e2e	JohnDoe	password123	JohnDoe2ed440bb-ec2b-47b7-b4f5-59b3940a6cf1@example.com	resources/images/JohnDoe_pfp.png
 \.
 
 
@@ -341,6 +491,9 @@ d30869ec-fb97-46d8-85a3-82608c01f803	JohnDoe	P@ssw0rd	JohnDoe@example.com	resour
 COPY public."UserDetail" (first_name, last_name, contact_number, created_date, address, id) FROM stdin;
 John	Doe	+1-555-0123	2025-10-30	123 Main Street, Springfield	e1f2a3b4-5c6d-7e8f-9a0b-1c2d3e4f5a6b
 John	Doe	1234567890	2025-10-31	123 Main St	b442af69-04c2-44cd-9f4e-46961ea73f4a
+John	Doe	1234567890	2025-11-05	123 Main St	36faa21e-03c6-4ecc-9cdf-8e659267ea1d
+John	Doe	1234567890	2025-11-05	123 Main St	accbba21-06fd-4113-b23d-5b944ae51f3d
+John	Doe	1234567890	2025-11-05	123 Main St	99c2ec91-2152-4ff9-81cf-860526631d6e
 \.
 
 
@@ -351,6 +504,9 @@ John	Doe	1234567890	2025-10-31	123 Main St	b442af69-04c2-44cd-9f4e-46961ea73f4a
 COPY public."UserUserDetail" (user_id, detail_id) FROM stdin;
 d30869ec-fb97-46d8-85a3-82608c01f803	e1f2a3b4-5c6d-7e8f-9a0b-1c2d3e4f5a6b
 65ddb076-744c-40be-b90b-0b281149c9fa	b442af69-04c2-44cd-9f4e-46961ea73f4a
+9ae195a0-05ff-446b-99c0-e6f09a0150d1	36faa21e-03c6-4ecc-9cdf-8e659267ea1d
+91254998-107c-4c10-b7f3-5ee4c21cebc2	accbba21-06fd-4113-b23d-5b944ae51f3d
+543255dd-5325-4d3f-bcd2-ee6f8ac87e2e	99c2ec91-2152-4ff9-81cf-860526631d6e
 \.
 
 
@@ -379,6 +535,14 @@ ALTER TABLE ONLY public."CartItem"
 
 ALTER TABLE ONLY public."Cart"
     ADD CONSTRAINT "Cart_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Farmer Farmer_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Farmer"
+    ADD CONSTRAINT "Farmer_pkey" PRIMARY KEY (id);
 
 
 --
@@ -443,6 +607,38 @@ ALTER TABLE ONLY public."User"
 
 ALTER TABLE ONLY public."UsersItem"
     ADD CONSTRAINT "UsersItem_pkey" PRIMARY KEY (user_id, item_id);
+
+
+--
+-- Name: Comment comment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Comment"
+    ADD CONSTRAINT comment_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: Farm farm_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Farm"
+    ADD CONSTRAINT farm_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: Likes likes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Likes"
+    ADD CONSTRAINT likes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: Posts posts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Posts"
+    ADD CONSTRAINT posts_pkey PRIMARY KEY (id);
 
 
 --
@@ -542,8 +738,72 @@ ALTER TABLE ONLY public."UsersItem"
 
 
 --
+-- Name: Comment comment_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Comment"
+    ADD CONSTRAINT comment_post_id_fkey FOREIGN KEY (post_id) REFERENCES public."Posts"(id);
+
+
+--
+-- Name: Comment comment_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Comment"
+    ADD CONSTRAINT comment_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."User"(id);
+
+
+--
+-- Name: Farm farm_farmer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Farm"
+    ADD CONSTRAINT farm_farmer_id_fkey FOREIGN KEY (farmer_id) REFERENCES public."User"(id);
+
+
+--
+-- Name: Likes likes_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Likes"
+    ADD CONSTRAINT likes_post_id_fkey FOREIGN KEY (post_id) REFERENCES public."Posts"(id);
+
+
+--
+-- Name: Likes likes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Likes"
+    ADD CONSTRAINT likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."User"(id);
+
+
+--
+-- Name: Posts posts_farm_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Posts"
+    ADD CONSTRAINT posts_farm_id_fkey FOREIGN KEY (farm_id) REFERENCES public."Farm"(id);
+
+
+--
+-- Name: Posts posts_farmer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Posts"
+    ADD CONSTRAINT posts_farmer_id_fkey FOREIGN KEY (farmer_id) REFERENCES public."User"(id);
+
+
+--
+-- Name: Farmer user_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Farmer"
+    ADD CONSTRAINT user_fk FOREIGN KEY (user_id) REFERENCES public."User"(id);
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict FhezmbIePXo9E5xQqv1CdPbadJAazYuHNcUIyXDT20SAXUqg3l7MiqfJoHmEYM0
+\unrestrict 01IqbNGPYt75V4Ug34Kck1bhaR4Q3wOBQDypM4QruMTM3GqvbQwrhBUcJCdrdLh
 
