@@ -49,6 +49,22 @@ func setupServer() *gin.Engine {
 	userPostG.PATCH("/:post_id", updateUserPostHandler)
 	userPostG.DELETE("/:post_id", deleteUserPostHandler)
 
+	tradeG := r.Group("/trade")
+	tradeG.GET("/batch", getTradeListingsBatchHandler)
+	tradeG.GET("", getTradeListingByIDHandler) // Query param: ?id=uuid
+	tradeG.POST("", postTradeListingHandler)
+	tradeG.PATCH("/:id", updateTradeListingStatusHandler) // Path param: /trade/:id
+
+	// Trade bid routes
+	bidG := r.Group("/bid")
+	bidG.GET("", getTradeBidByIDHandler) // Query param: ?id=uuid
+	bidG.POST("", postTradeBidHandler)
+	bidG.PUT("/:id", updateTradeBidHandler)                // Path param: /bid/:id
+	bidG.PATCH("/:id/status", updateTradeBidStatusHandler) // Path param: /bid/:id/status
+	bidG.DELETE("/:id", deleteTradeBidHandler)             // Path param: /bid/:id
+
+	bidG.GET("/farmer/:farmer_id", getTradeBidsByFarmerHandler) // Path param: /bid/farmer/:farmer_id
+
 	db.SetupDatabase()
 
 	return r

@@ -87,3 +87,122 @@ func UpdateTradeBidStatus(id string, status string) error {
 	}
 	return err
 }
+
+// GetTradeBidByID retrieves a single trade bid from the database by its ID.
+func GetTradeBidByID(id string) (*TradeBid, error) {
+	query := `SELECT id, trade_listing_id, bidding_farmer_id, bid_item_id, bid_item_quantity, status, created_at
+              FROM "TradeBid" WHERE id = $1`
+	row := db.QueryRow(query, id)
+	var bid TradeBid
+	err := row.Scan(&bid.ID, &bid.TradeListingID, &bid.BiddingFarmerID, &bid.BidItemID, &bid.BidItemQuantity, &bid.Status, &bid.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Not found
+		}
+		log.Printf("Error scanning trade bid: %v", err)
+		return nil, err
+	}
+	return &bid, nil
+}
+
+// GetTradeBidsByFarmer retrieves all bids made by a specific farmer.
+func GetTradeBidsByFarmer(farmerID string) ([]TradeBid, error) {
+	query := `SELECT id, trade_listing_id, bidding_farmer_id, bid_item_id, bid_item_quantity, status, created_at
+              FROM "TradeBid" WHERE bidding_farmer_id = $1
+              ORDER BY created_at DESC`
+	rows, err := db.Query(query, farmerID)
+	if err != nil {
+		log.Printf("Error querying trade bids by farmer: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var bids []TradeBid = []TradeBid{}
+	for rows.Next() {
+		var bid TradeBid
+		err := rows.Scan(&bid.ID, &bid.TradeListingID, &bid.BiddingFarmerID, &bid.BidItemID, &bid.BidItemQuantity, &bid.Status, &bid.CreatedAt)
+		if err != nil {
+			log.Printf("Error scanning trade bid: %v", err)
+			return nil, err
+		}
+		bids = append(bids, bid)
+	}
+	return bids, nil
+}
+
+// UpdateTradeBid updates a trade bid's item and quantity (only allowed for pending bids).
+func UpdateTradeBid(id string, bidItemID string, bidItemQuantity float64) error {
+	query := `UPDATE "TradeBid" 
+              SET bid_item_id = $1, bid_item_quantity = $2 
+              WHERE id = $3 AND status = 'pending'`
+	result, err := db.Exec(query, bidItemID, bidItemQuantity, id)
+	if err != nil {
+		log.Printf("Error updating trade bid: %v", err)
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows // Bid not found or not in pending status
+	}
+
+	return nil
+}
+
+// DeleteTradeBid deletes a trade bid from the database (only allowed for pending bids).
+func DeleteTradeBid(id string) error {
+	query := `DELETE FROM "TradeBid" WHERE id = $1 AND status = 'pending'`
+	result, err := db.Exec(query, id)
+	if err != nil {
+		log.Printf("Error deleting trade bid: %v", err)
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows // Bid not found or not in pending status
+	}
+
+	return nil
+}
+
+// GetTradeListingsByBlock retrieves a batch of trade listings (100 per block).
+func GetTradeListingsByBlock(block int) ([]TradeListing, error) {
+	query := `SELECT id,
+				offering_farmer_id,
+				offered_item_id,
+				offered_item_quantity,
+				desired_items,
+				status,
+				created_at,
+				expires_at
+              FROM "TradeListing"
+              ORDER BY created_at DESC
+              LIMIT 100 OFFSET $1`
+	rows, err := db.Query(query, block*100)
+	if err != nil {
+		log.Printf("Error querying trade listings: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var listings []TradeListing = []TradeListing{}
+	for rows.Next() {
+		var listing TradeListing
+		err := rows.Scan(&listing.ID, &listing.OfferingFarmerID, &listing.OfferedItemID, &listing.OfferedItemQuantity, &listing.DesiredItems, &listing.Status, &listing.CreatedAt, &listing.ExpiresAt)
+		if err != nil {
+			log.Printf("Error scanning trade listing: %v", err)
+			return nil, err
+		}
+		listings = append(listings, listing)
+	}
+	return listings, nil
+}
