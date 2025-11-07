@@ -30,12 +30,20 @@ func TestGetTradeListingsBatch(t *testing.T) {
 	}
 	assert.Equalf(t, http.StatusOK, w.Code, "message: %s", w.Body.String())
 
-	var listings []db.TradeListing
-	err := json.Unmarshal(w.Body.Bytes(), &listings)
+	// Now expecting enriched format with image encoding
+	var enrichedListings []map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &enrichedListings)
 	require.NoError(t, err)
-	assert.NotNil(t, listings)
+	assert.NotNil(t, enrichedListings)
 	// Should return at least the sample listings from the database
-	assert.GreaterOrEqual(t, len(listings), 0)
+	assert.GreaterOrEqual(t, len(enrichedListings), 0)
+
+	// Verify structure if listings exist
+	if len(enrichedListings) > 0 {
+		firstListing := enrichedListings[0]
+		assert.Contains(t, firstListing, "listing")
+		// Image fields are optional (only present if listing has an image)
+	}
 }
 
 // TestGetTradeListingsBatchWithBlock tests pagination
@@ -49,10 +57,10 @@ func TestGetTradeListingsBatchWithBlock(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var listings []db.TradeListing
-	err := json.Unmarshal(w.Body.Bytes(), &listings)
+	var enrichedListings []map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &enrichedListings)
 	require.NoError(t, err)
-	assert.NotNil(t, listings)
+	assert.NotNil(t, enrichedListings)
 }
 
 // TestGetTradeListingsBatchInvalidBlock tests invalid block parameter
@@ -80,8 +88,10 @@ func TestGetTradeListingByID(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var response struct {
-		Listing db.TradeListing `json:"listing"`
-		Bids    []db.TradeBid   `json:"bids"`
+		Listing          db.TradeListing `json:"listing"`
+		Bids             []db.TradeBid   `json:"bids"`
+		ImageBase64      string          `json:"image_base64,omitempty"`
+		ImageContentType string          `json:"image_content_type,omitempty"`
 	}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
@@ -90,6 +100,7 @@ func TestGetTradeListingByID(t *testing.T) {
 	assert.NotNil(t, response.Bids)
 	// This listing should have 2 bids from sample data
 	assert.GreaterOrEqual(t, len(response.Bids), 0)
+	// Image fields are optional (only present if listing has an image)
 }
 
 // TestGetTradeListingByIDNotFound tests retrieving a non-existent listing
@@ -123,16 +134,25 @@ func TestGetTradeListingByIDMissingParam(t *testing.T) {
 func TestPostTradeListing(t *testing.T) {
 	server := setupServer()
 
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	newListing := db.TradeListing{
-		OfferingFarmerID:    "8c8c73e8-0a16-4d3a-826d-75d50d7a758f", // JohnDoe farmer
-		OfferedItemID:       "c9d3e8a1-55b2-4f66-a123-333333333333", // Rice
-		OfferedItemQuantity: 50,
-		DesiredItems:        "Looking for fresh vegetables, preferably tomatoes or lettuce.",
-		ExpiresAt:           &expiresAt,
+	expiresAt := time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339)
+
+	// Use new envelope format with listing and optional listing_image
+	payload := map[string]interface{}{
+		"listing": map[string]interface{}{
+			"offering_farmer_id":    "8c8c73e8-0a16-4d3a-826d-75d50d7a758f", // JohnDoe farmer
+			"offered_item_id":       "c9d3e8a1-55b2-4f66-a123-333333333333", // Rice
+			"offered_item_quantity": 50.0,
+			"desired_items":         "Looking for fresh vegetables, preferably tomatoes or lettuce.",
+			"expires_at":            expiresAt,
+		},
+		// Optional: add listing_image for testing image upload
+		// "listing_image": map[string]interface{}{
+		// 	"base64": "<base64-encoded-image>",
+		// 	"content_type": "image/png",
+		// },
 	}
 
-	jData, _ := json.Marshal(newListing)
+	jData, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, "/trade", bytes.NewBuffer(jData))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -218,17 +238,20 @@ func TestPostTradeBidInvalidData(t *testing.T) {
 func TestUpdateTradeListingStatus(t *testing.T) {
 	server := setupServer()
 
-	// First, create a new listing to update
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	newListing := db.TradeListing{
-		OfferingFarmerID:    "8c8c73e8-0a16-4d3a-826d-75d50d7a758f",
-		OfferedItemID:       "c9d3e8a1-55b2-4f66-a123-333333333333",
-		OfferedItemQuantity: 25,
-		DesiredItems:        "Looking for fruits",
-		ExpiresAt:           &expiresAt,
+	// First, create a new listing to update with new envelope format
+	expiresAt := time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339)
+
+	payload := map[string]interface{}{
+		"listing": map[string]interface{}{
+			"offering_farmer_id":    "8c8c73e8-0a16-4d3a-826d-75d50d7a758f",
+			"offered_item_id":       "c9d3e8a1-55b2-4f66-a123-333333333333",
+			"offered_item_quantity": 25.0,
+			"desired_items":         "Looking for fruits",
+			"expires_at":            expiresAt,
+		},
 	}
 
-	jData, _ := json.Marshal(newListing)
+	jData, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, "/trade", bytes.NewBuffer(jData))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -308,17 +331,20 @@ func TestUpdateTradeListingStatusMissingParam(t *testing.T) {
 func TestUpdateTradeListingStatusAllValidValues(t *testing.T) {
 	server := setupServer()
 
-	// Create a new listing
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	newListing := db.TradeListing{
-		OfferingFarmerID:    "8c8c73e8-0a16-4d3a-826d-75d50d7a758f",
-		OfferedItemID:       "c9d3e8a1-55b2-4f66-a123-333333333333",
-		OfferedItemQuantity: 30,
-		DesiredItems:        "Testing status updates",
-		ExpiresAt:           &expiresAt,
+	// Create a new listing with new envelope format
+	expiresAt := time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339)
+
+	payload := map[string]interface{}{
+		"listing": map[string]interface{}{
+			"offering_farmer_id":    "8c8c73e8-0a16-4d3a-826d-75d50d7a758f",
+			"offered_item_id":       "c9d3e8a1-55b2-4f66-a123-333333333333",
+			"offered_item_quantity": 30.0,
+			"desired_items":         "Testing status updates",
+			"expires_at":            expiresAt,
+		},
 	}
 
-	jData, _ := json.Marshal(newListing)
+	jData, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, "/trade", bytes.NewBuffer(jData))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -353,17 +379,20 @@ func TestUpdateTradeListingStatusAllValidValues(t *testing.T) {
 func TestTradeAPIWorkflow(t *testing.T) {
 	server := setupServer()
 
-	// 1. Create a new trade listing
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	newListing := db.TradeListing{
-		OfferingFarmerID:    "8c8c73e8-0a16-4d3a-826d-75d50d7a758f", // JohnDoe farmer
-		OfferedItemID:       "b7f2c6d4-1aeb-4f5b-9c2b-222222222222", // Tomato
-		OfferedItemQuantity: 40,
-		DesiredItems:        "Looking for corn or wheat",
-		ExpiresAt:           &expiresAt,
+	// 1. Create a new trade listing with new envelope format
+	expiresAt := time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339)
+
+	payload := map[string]interface{}{
+		"listing": map[string]interface{}{
+			"offering_farmer_id":    "8c8c73e8-0a16-4d3a-826d-75d50d7a758f", // JohnDoe farmer
+			"offered_item_id":       "b7f2c6d4-1aeb-4f5b-9c2b-222222222222", // Tomato
+			"offered_item_quantity": 40.0,
+			"desired_items":         "Looking for corn or wheat",
+			"expires_at":            expiresAt,
+		},
 	}
 
-	jData, _ := json.Marshal(newListing)
+	jData, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, "/trade", bytes.NewBuffer(jData))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -382,8 +411,10 @@ func TestTradeAPIWorkflow(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var getResp struct {
-		Listing db.TradeListing `json:"listing"`
-		Bids    []db.TradeBid   `json:"bids"`
+		Listing          db.TradeListing `json:"listing"`
+		Bids             []db.TradeBid   `json:"bids"`
+		ImageBase64      string          `json:"image_base64,omitempty"`
+		ImageContentType string          `json:"image_content_type,omitempty"`
 	}
 	json.Unmarshal(w.Body.Bytes(), &getResp)
 	assert.Equal(t, listingID, getResp.Listing.ID)
@@ -427,13 +458,15 @@ func TestTradeAPIWorkflow(t *testing.T) {
 	server.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var listings []db.TradeListing
-	json.Unmarshal(w.Body.Bytes(), &listings)
+	var enrichedListings []map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &enrichedListings)
 	foundListing := false
-	for _, listing := range listings {
-		if listing.ID == listingID {
-			foundListing = true
-			break
+	for _, enrichedListing := range enrichedListings {
+		if listingData, ok := enrichedListing["listing"].(map[string]interface{}); ok {
+			if id, ok := listingData["id"].(string); ok && id == listingID {
+				foundListing = true
+				break
+			}
 		}
 	}
 	assert.True(t, foundListing, "New listing should appear in batch results")

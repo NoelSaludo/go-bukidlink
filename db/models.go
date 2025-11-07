@@ -86,6 +86,7 @@ type TradeListing struct {
 	OfferedItemQuantity float64    `json:"offered_item_quantity"`
 	DesiredItems        string     `json:"desired_items"`
 	Status              string     `json:"status"`
+	ImageURL            *string    `json:"image_url,omitempty"`
 	CreatedAt           time.Time  `json:"created_at"`
 	ExpiresAt           *time.Time `json:"expires_at,omitempty"`
 }

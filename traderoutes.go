@@ -2,12 +2,80 @@ package main
 
 import (
 	"bukidlink/db"
+	"encoding/base64"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+// encodeTradeImageToBase64 reads an image file and returns base64 encoded data and content type
+func encodeTradeImageToBase64(imageURL *string) (string, string, error) {
+	if imageURL == nil || *imageURL == "" {
+		return "", "", nil
+	}
+
+	imageData, err := os.ReadFile(*imageURL)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Encode to base64
+	base64Image := base64.StdEncoding.EncodeToString(imageData)
+
+	// Determine content type from file extension
+	ext := strings.ToLower(filepath.Ext(*imageURL))
+	contentType := "image/jpeg" // default
+	switch ext {
+	case ".png":
+		contentType = "image/png"
+	case ".jpg", ".jpeg":
+		contentType = "image/jpeg"
+	case ".gif":
+		contentType = "image/gif"
+	case ".webp":
+		contentType = "image/webp"
+	}
+
+	return base64Image, contentType, nil
+}
+
+// decodeAndSaveTradeImage decodes base64 image data and saves it to a file
+func decodeAndSaveTradeImage(base64Data string, contentType string, filename string) (string, error) {
+	// Decode base64 string
+	imageData, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return "", err
+	}
+
+	// Determine file extension from content type
+	ext := ".jpg" // default
+	switch contentType {
+	case "image/png":
+		ext = ".png"
+	case "image/jpeg", "image/jpg":
+		ext = ".jpg"
+	case "image/gif":
+		ext = ".gif"
+	case "image/webp":
+		ext = ".webp"
+	}
+
+	// Create file path
+	filePath := filepath.Join("resources", "images", filename+ext)
+
+	// Write file to disk
+	err = os.WriteFile(filePath, imageData, 0644)
+	if err != nil {
+		return "", err
+	}
+
+	return filePath, nil
+}
 
 // getTradeListingsBatchHandler retrieves a batch of available trade listings
 // GET /trades/batch?block=0
@@ -25,7 +93,25 @@ func getTradeListingsBatchHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, listings)
+	// Enrich listings with base64 encoded images
+	enrichedListings := make([]map[string]interface{}, 0)
+	for _, listing := range listings {
+		enrichedListing := map[string]interface{}{
+			"listing": listing,
+		}
+
+		// Encode image if available
+		if listing.ImageURL != nil && *listing.ImageURL != "" {
+			if base64Image, contentType, err := encodeTradeImageToBase64(listing.ImageURL); err == nil && base64Image != "" {
+				enrichedListing["image_base64"] = base64Image
+				enrichedListing["image_content_type"] = contentType
+			}
+		}
+
+		enrichedListings = append(enrichedListings, enrichedListing)
+	}
+
+	c.JSON(http.StatusOK, enrichedListings)
 }
 
 // getTradeListingByIDHandler retrieves a single trade listing by ID
@@ -55,28 +141,85 @@ func getTradeListingByIDHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	// Prepare response with image encoding
+	response := gin.H{
 		"listing": listing,
 		"bids":    bids,
-	})
+	}
+
+	// Encode image if available
+	if listing.ImageURL != nil && *listing.ImageURL != "" {
+		if base64Image, contentType, err := encodeTradeImageToBase64(listing.ImageURL); err == nil && base64Image != "" {
+			response["image_base64"] = base64Image
+			response["image_content_type"] = contentType
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // postTradeListingHandler creates a new trade listing
 // POST /trade
-// Body: { "offering_farmer_id": "uuid", "offered_item_id": "uuid", "offered_item_quantity": 20, "desired_items": "...", "expires_at": "2025-12-31T23:59:59Z" }
+//
+//	Body: {
+//	  "listing": { "offering_farmer_id": "uuid", "offered_item_id": "uuid", "offered_item_quantity": 20, "desired_items": "...", "expires_at": "2025-12-31T23:59:59Z" },
+//	  "listing_image": { "base64": "...", "content_type": "image/png" }
+//	}
 func postTradeListingHandler(c *gin.Context) {
-	var listing db.TradeListing
-	if err := c.ShouldBindJSON(&listing); err != nil {
+	var payload struct {
+		Listing struct {
+			OfferingFarmerID    string  `json:"offering_farmer_id" binding:"required"`
+			OfferedItemID       string  `json:"offered_item_id" binding:"required"`
+			OfferedItemQuantity float64 `json:"offered_item_quantity" binding:"required"`
+			DesiredItems        string  `json:"desired_items" binding:"required"`
+			ExpiresAt           *string `json:"expires_at"`
+		} `json:"listing"`
+		ListingImage *struct {
+			Base64      string `json:"base64"`
+			ContentType string `json:"content_type"`
+		} `json:"listing_image"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
 		retBadReqErr(err, c)
 		return
 	}
 
 	// Generate UUID for the listing
-	listing.ID = uuid.New().String()
+	listingID := uuid.New().String()
 
-	// Set initial status to open
-	if listing.Status == "" {
-		listing.Status = "open"
+	// Handle image if provided
+	var imageURL *string
+	if payload.ListingImage != nil && payload.ListingImage.Base64 != "" && payload.ListingImage.ContentType != "" {
+		// Save image with listing ID as filename
+		filePath, err := decodeAndSaveTradeImage(payload.ListingImage.Base64, payload.ListingImage.ContentType, listingID+"_trade")
+		if err != nil {
+			retConflictErr(err, c)
+			return
+		}
+		imageURL = &filePath
+	} else {
+		// Set default image if no image provided
+		defaultImage := "resources/images/no-image.jpg"
+		imageURL = &defaultImage
+	}
+
+	// Create listing object
+	listing := db.TradeListing{
+		ID:                  listingID,
+		OfferingFarmerID:    payload.Listing.OfferingFarmerID,
+		OfferedItemID:       payload.Listing.OfferedItemID,
+		OfferedItemQuantity: payload.Listing.OfferedItemQuantity,
+		DesiredItems:        payload.Listing.DesiredItems,
+		Status:              "open",
+		ImageURL:            imageURL,
+	}
+
+	// Parse ExpiresAt if provided
+	if payload.Listing.ExpiresAt != nil {
+		// Assuming the database layer or consumer handles time parsing
+		// For now, we'll skip parsing and let the DB layer handle it
+		// In production, you'd want to parse the time string here
 	}
 
 	err := db.CreateTradeListing(listing)

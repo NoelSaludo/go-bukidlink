@@ -7,9 +7,9 @@ import (
 
 // CreateTradeListing adds a new trade listing to the database.
 func CreateTradeListing(listing TradeListing) error {
-	query := `INSERT INTO "TradeListing" (id, offering_farmer_id, offered_item_id, offered_item_quantity, desired_items, status, expires_at)
-              VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err := db.Exec(query, listing.ID, listing.OfferingFarmerID, listing.OfferedItemID, listing.OfferedItemQuantity, listing.DesiredItems, listing.Status, listing.ExpiresAt)
+	query := `INSERT INTO "TradeListing" (id, offering_farmer_id, offered_item_id, offered_item_quantity, desired_items, status, image_url, expires_at)
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	_, err := db.Exec(query, listing.ID, listing.OfferingFarmerID, listing.OfferedItemID, listing.OfferedItemQuantity, listing.DesiredItems, listing.Status, listing.ImageURL, listing.ExpiresAt)
 	if err != nil {
 		log.Printf("Error creating trade listing: %v", err)
 	}
@@ -18,11 +18,11 @@ func CreateTradeListing(listing TradeListing) error {
 
 // GetTradeListingByID retrieves a single trade listing from the database by its ID.
 func GetTradeListingByID(id string) (*TradeListing, error) {
-	query := `SELECT id, offering_farmer_id, offered_item_id, offered_item_quantity, desired_items, status, created_at, expires_at
-              FROM "TradeListing" WHERE id = $1`
+	query := `SELECT id, offering_farmer_id, offered_item_id, offered_item_quantity, desired_items, status, image_url, created_at, expires_at
+			  FROM "TradeListing" WHERE id = $1`
 	row := db.QueryRow(query, id)
 	var listing TradeListing
-	err := row.Scan(&listing.ID, &listing.OfferingFarmerID, &listing.OfferedItemID, &listing.OfferedItemQuantity, &listing.DesiredItems, &listing.Status, &listing.CreatedAt, &listing.ExpiresAt)
+	err := row.Scan(&listing.ID, &listing.OfferingFarmerID, &listing.OfferedItemID, &listing.OfferedItemQuantity, &listing.DesiredItems, &listing.Status, &listing.ImageURL, &listing.CreatedAt, &listing.ExpiresAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Not found
@@ -182,8 +182,9 @@ func GetTradeListingsByBlock(block int) ([]TradeListing, error) {
 				offered_item_quantity,
 				desired_items,
 				status,
-				created_at,
-				expires_at
+			image_url,
+			created_at,
+			expires_at
               FROM "TradeListing"
               ORDER BY created_at DESC
               LIMIT 100 OFFSET $1`
@@ -197,7 +198,7 @@ func GetTradeListingsByBlock(block int) ([]TradeListing, error) {
 	var listings []TradeListing = []TradeListing{}
 	for rows.Next() {
 		var listing TradeListing
-		err := rows.Scan(&listing.ID, &listing.OfferingFarmerID, &listing.OfferedItemID, &listing.OfferedItemQuantity, &listing.DesiredItems, &listing.Status, &listing.CreatedAt, &listing.ExpiresAt)
+		err := rows.Scan(&listing.ID, &listing.OfferingFarmerID, &listing.OfferedItemID, &listing.OfferedItemQuantity, &listing.DesiredItems, &listing.Status, &listing.ImageURL, &listing.CreatedAt, &listing.ExpiresAt)
 		if err != nil {
 			log.Printf("Error scanning trade listing: %v", err)
 			return nil, err
