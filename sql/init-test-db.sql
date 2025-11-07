@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 01IqbNGPYt75V4Ug34Kck1bhaR4Q3wOBQDypM4QruMTM3GqvbQwrhBUcJCdrdLh
+\restrict h0Nv8YUzTW9jPy7Tc9Y1cnS9HVWPluiBpxyDjauL0WRVf62NkcR6fgLgsVUvBYX
 
 -- Dumped from database version 18.0 (Ubuntu 18.0-1.pgdg24.04+3)
 -- Dumped by pg_dump version 18.0 (Ubuntu 18.0-1.pgdg24.04+3)
@@ -60,6 +60,32 @@ CREATE TYPE public.temp_status AS ENUM (
 
 
 ALTER TYPE public.temp_status OWNER TO postgres;
+
+--
+-- Name: trade_bid_status; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.trade_bid_status AS ENUM (
+    'pending',
+    'accepted',
+    'rejected'
+);
+
+
+ALTER TYPE public.trade_bid_status OWNER TO postgres;
+
+--
+-- Name: trade_listing_status; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.trade_listing_status AS ENUM (
+    'open',
+    'completed',
+    'cancelled'
+);
+
+
+ALTER TYPE public.trade_listing_status OWNER TO postgres;
 
 --
 -- Name: user_type; Type: TYPE; Schema: public; Owner: postgres
@@ -240,6 +266,42 @@ CREATE TABLE public."Review" (
 ALTER TABLE public."Review" OWNER TO postgres;
 
 --
+-- Name: TradeBid; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."TradeBid" (
+    id uuid NOT NULL,
+    trade_listing_id uuid NOT NULL,
+    bidding_farmer_id uuid NOT NULL,
+    bid_item_id uuid NOT NULL,
+    bid_item_quantity numeric NOT NULL,
+    status public.trade_bid_status NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public."TradeBid" OWNER TO postgres;
+
+--
+-- Name: TradeListing; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."TradeListing" (
+    id uuid NOT NULL,
+    offering_farmer_id uuid NOT NULL,
+    offered_item_id uuid NOT NULL,
+    offered_item_quantity numeric NOT NULL,
+    desired_items text,
+    status public.trade_listing_status NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    expires_at timestamp with time zone,
+    image_url character varying(255) DEFAULT 'resources/images/no-image.jpg'::character varying NOT NULL
+);
+
+
+ALTER TABLE public."TradeListing" OWNER TO postgres;
+
+--
 -- Name: User; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -352,6 +414,9 @@ COPY public."Farm" (id, farmer_id, name, address, created_at) FROM stdin;
 --
 
 COPY public."Farmer" (id, user_id) FROM stdin;
+8c8c73e8-0a16-4d3a-826d-75d50d7a758f	d30869ec-fb97-46d8-85a3-82608c01f803
+9c6a8e18-4a0d-4a3a-8c6d-75d50d7a758f	c6554794-849f-4338-87c5-6db2e2f76514
+ac7b9f28-5b1e-4b4a-9d7e-85d50d7a758f	6a24dd2b-d441-4b39-ab85-8fa2bd61065e
 \.
 
 
@@ -403,6 +468,8 @@ f97c3426-d2fa-441f-a934-5260b5f1499b	d30869ec-fb97-46d8-85a3-82608c01f803	2025-1
 a854ad9d-5b27-4399-b71e-6a92c2cae961	d30869ec-fb97-46d8-85a3-82608c01f803	2025-10-30 18:21:14.795816+08	5.00	Shipping
 9b386052-49a8-4003-8f6e-b4862ddf70b5	d30869ec-fb97-46d8-85a3-82608c01f803	2025-10-31 09:44:06.368392+08	5.00	Shipping
 6d533161-b7eb-4eed-9365-3911e88674b1	d30869ec-fb97-46d8-85a3-82608c01f803	2025-11-05 20:54:16.369795+08	5.00	Shipping
+983a8b8f-2fcf-45ce-b26f-5965ae5fef8b	d30869ec-fb97-46d8-85a3-82608c01f803	2025-11-07 16:17:39.928068+08	5.00	Shipping
+deb53ec7-c5f2-4805-995f-e5c62e8d825d	d30869ec-fb97-46d8-85a3-82608c01f803	2025-11-07 16:19:28.872747+08	5.00	Shipping
 \.
 
 
@@ -435,6 +502,10 @@ cce6c6e8-bf80-420f-a7bc-f9e4b01f9fba	a854ad9d-5b27-4399-b71e-6a92c2cae961	c9d3e8
 8748c4fc-b48f-4cd0-8d90-404a646f11f1	9b386052-49a8-4003-8f6e-b4862ddf70b5	c9d3e8a1-55b2-4f66-a123-333333333333	1	3.00
 35e177b1-58a1-4e11-b6a4-43c72d06f339	6d533161-b7eb-4eed-9365-3911e88674b1	a3e1b9f2-7d94-4d3a-9b4a-111111111111	2	1.00
 d6adbca9-46df-4528-a19e-e76620c9cce2	6d533161-b7eb-4eed-9365-3911e88674b1	c9d3e8a1-55b2-4f66-a123-333333333333	1	3.00
+4c2a90b2-05b6-4786-a9c6-1d2a847759c2	983a8b8f-2fcf-45ce-b26f-5965ae5fef8b	a3e1b9f2-7d94-4d3a-9b4a-111111111111	2	1.00
+264d0527-a041-4bdb-b5f6-0f5a3a017171	983a8b8f-2fcf-45ce-b26f-5965ae5fef8b	c9d3e8a1-55b2-4f66-a123-333333333333	1	3.00
+931946c9-7a3a-4326-8ef8-f09b58dfe02f	deb53ec7-c5f2-4805-995f-e5c62e8d825d	a3e1b9f2-7d94-4d3a-9b4a-111111111111	2	1.00
+4b168118-c1a7-462d-9c25-e603f14be000	deb53ec7-c5f2-4805-995f-e5c62e8d825d	c9d3e8a1-55b2-4f66-a123-333333333333	1	3.00
 \.
 
 
@@ -449,8 +520,9 @@ COPY public."Posts" (id, farmer_id, farm_id, content, image_url, created_at) FRO
 55555555-5555-5555-5555-555555555555	c6554794-849f-4338-87c5-6db2e2f76514	22222222-bbbb-bbbb-bbbb-222222222222	Green Valley introduces a new line of organic herbs.	resources/images/no-image.jpg	2025-11-02 12:00:00
 66666666-6666-6666-6666-666666666666	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	33333333-cccc-cccc-cccc-333333333333	Harvest Haven is now certified organic!	resources/images/no-image.jpg	2025-11-03 08:00:00
 9af3ee81-346e-4cb5-9eba-2390fedb16dd	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	This is a test post from JohnDoe.	resources/images/9af3ee81-346e-4cb5-9eba-2390fedb16dd_post.png	2025-11-03 17:28:26.212629
-11111111-1111-1111-1111-111111111111	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	Updated content	resources/images/updated-image-url.jpg	2025-10-30 14:51:36
 f66ea4c3-f169-46e0-af01-4b9666d745bc	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	Final updated content	resources/images/f66ea4c3-f169-46e0-af01-4b9666d745bc_post.png	2025-11-03 17:49:54.264288
+11111111-1111-1111-1111-111111111111	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	Updated content	resources/images/updated-image-url.jpg	2025-10-30 14:51:36
+4ef9a372-7078-4171-94ff-249a553fad6d	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	This is a test post from JohnDoe.	resources/images/4ef9a372-7078-4171-94ff-249a553fad6d_post.png	2025-11-07 16:19:33.484823
 4683f7a1-72d4-40b7-a725-19387799bcb9	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	This is a test post from JohnDoe.	resources/images/4683f7a1-72d4-40b7-a725-19387799bcb9_post.png	2025-11-04 17:18:56.113634
 721b120c-a7ba-4f8e-bd90-db879713f475	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	This is a test post from JohnDoe.	resources/images/721b120c-a7ba-4f8e-bd90-db879713f475_post.png	2025-11-04 17:31:06.697544
 d37e8c39-6329-426c-b1e5-8b26a7826a89	d30869ec-fb97-46d8-85a3-82608c01f803	11111111-aaaa-aaaa-aaaa-111111111111	This is a test post from JohnDoe.	resources/images/d37e8c39-6329-426c-b1e5-8b26a7826a89_post.png	2025-11-04 17:58:12.951623
@@ -466,6 +538,56 @@ COPY public."Review" (id, userid, itemid, content, rating) FROM stdin;
 8346bc9c-5efc-41bc-b7ea-68182849c473	d30869ec-fb97-46d8-85a3-82608c01f803	a3e1b9f2-7d94-4d3a-9b4a-111111111111	Very good Banana, cheap and very bananaey	4.6
 f82ed553-05b3-41e3-817e-8e5ec4855ec0	c6554794-849f-4338-87c5-6db2e2f76514	a3e1b9f2-7d94-4d3a-9b4a-111111111111	Banana good for dishes and very yellow not very black	4.7
 73222104-7f54-46a2-9b09-c4e4aba8d2bf	6a24dd2b-d441-4b39-ab85-8fa2bd61065e	b7f2c6d4-1aeb-4f5b-9c2b-222222222222	Tomato very red. Tomatoes is delicious	4.5
+\.
+
+
+--
+-- Data for Name: TradeBid; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."TradeBid" (id, trade_listing_id, bidding_farmer_id, bid_item_id, bid_item_quantity, status, created_at) FROM stdin;
+4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a	1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d	9c6a8e18-4a0d-4a3a-8c6d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	15	pending	2025-11-06 12:04:04.204444+08
+5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b	1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d	ac7b9f28-5b1e-4b4a-9d7e-85d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	12	pending	2025-11-06 14:04:04.204444+08
+6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c	2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e	ac7b9f28-5b1e-4b4a-9d7e-85d50d7a758f	a3e1b9f2-7d94-4d3a-9b4a-111111111111	30	accepted	2025-10-30 12:04:04.204444+08
+7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d	2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	a3e1b9f2-7d94-4d3a-9b4a-111111111111	25	rejected	2025-10-29 12:04:04.204444+08
+da420de6-b762-42ea-b3da-f649510ea376	1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d	ac7b9f28-5b1e-4b4a-9d7e-85d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	18	rejected	2025-11-07 13:15:21.486721+08
+8ef8a66b-a13c-4e2a-aabc-f7f6981bfddc	1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d	ac7b9f28-5b1e-4b4a-9d7e-85d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	18	pending	2025-11-07 14:06:15.579066+08
+b1427605-04a7-4d47-a66c-acb94e18f32c	80832a67-4220-4300-a9f0-dcfa3b4c24ad	9c6a8e18-4a0d-4a3a-8c6d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	20	pending	2025-11-07 15:28:26.509664+08
+404fa43f-c823-4e5e-b965-ac3356291191	1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d	ac7b9f28-5b1e-4b4a-9d7e-85d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	18	pending	2025-11-07 16:19:39.485666+08
+b0e92c3c-ea9e-4533-837e-8fc380b2b05e	6792084e-0365-4f97-9c29-f8eabcb2240d	9c6a8e18-4a0d-4a3a-8c6d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	20	pending	2025-11-07 16:27:04.808898+08
+\.
+
+
+--
+-- Data for Name: TradeListing; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."TradeListing" (id, offering_farmer_id, offered_item_id, offered_item_quantity, desired_items, status, created_at, expires_at, image_url) FROM stdin;
+1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	b7f2c6d4-1aeb-4f5b-9c2b-222222222222	20	Looking for long-grain white rice.	open	2025-11-05 12:04:04.200954+08	2025-11-12 12:04:04.200954+08	resources/images/no-image.jpg
+2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e	9c6a8e18-4a0d-4a3a-8c6d-75d50d7a758f	f6c8d9e0-0b77-4d55-a789-666666666666	5	Fresh bananas, around 30kg.	completed	2025-10-28 12:04:04.200954+08	2025-11-04 12:04:04.200954+08	resources/images/no-image.jpg
+3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	a3e1b9f2-7d94-4d3a-9b4a-111111111111	50	Willing to trade for other fruits.	cancelled	2025-11-06 12:04:04.200954+08	\N	resources/images/no-image.jpg
+83b09723-7268-4d49-afcb-e350ecc7b9ab	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	30	Testing status updates	open	2025-11-07 16:27:02.060228+08	\N	resources/images/no-image.jpg
+e5b360f4-d777-4865-9d49-ab961a36fee7	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	50	Looking for fresh vegetables, preferably tomatoes or lettuce.	cancelled	2025-11-07 13:15:21.474432+08	2025-11-14 13:15:21.469012+08	resources/images/no-image.jpg
+d13b21f4-a5ee-47b8-a47c-8ef7c34e64f3	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	50	Looking for fresh vegetables, preferably tomatoes or lettuce.	open	2025-11-07 13:46:15.771153+08	2025-11-14 13:46:15.763768+08	resources/images/no-image.jpg
+f2f22e14-a250-4b5c-99db-497e31606c2a	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	25	Looking for fruits	completed	2025-11-07 13:46:15.783297+08	2025-11-14 13:46:15.777798+08	resources/images/no-image.jpg
+6792084e-0365-4f97-9c29-f8eabcb2240d	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	b7f2c6d4-1aeb-4f5b-9c2b-222222222222	40	Looking for corn or wheat	completed	2025-11-07 16:27:04.805389+08	\N	resources/images/no-image.jpg
+99fb53b7-dce2-4430-827e-17e7d9d76f0c	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	30	Testing status updates	open	2025-11-07 13:46:15.795257+08	2025-11-14 13:46:15.790372+08	resources/images/no-image.jpg
+f8c5ce4b-ac4c-4285-a69f-2725037d81cf	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	b7f2c6d4-1aeb-4f5b-9c2b-222222222222	40	Looking for corn or wheat	open	2025-11-07 13:46:15.808464+08	2025-11-14 13:46:15.804039+08	resources/images/no-image.jpg
+1db3d95b-4c5a-4ba5-ad65-897ad0780867	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	50	Looking for fresh vegetables, preferably tomatoes or lettuce.	open	2025-11-07 13:46:34.408868+08	2025-11-14 13:46:34.403516+08	resources/images/no-image.jpg
+df34d7b1-0a8e-4a36-a659-b79f096c1138	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	25	Looking for fruits	completed	2025-11-07 13:46:34.418584+08	2025-11-14 13:46:34.414556+08	resources/images/no-image.jpg
+5951e4f9-518c-4742-930d-604fb876c9e2	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	30	Testing status updates	open	2025-11-07 13:46:34.428521+08	2025-11-14 13:46:34.423968+08	resources/images/no-image.jpg
+04007d58-c72d-414e-87a3-be735b049e17	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	b7f2c6d4-1aeb-4f5b-9c2b-222222222222	40	Looking for corn or wheat	open	2025-11-07 13:46:34.441871+08	2025-11-14 13:46:34.437003+08	resources/images/no-image.jpg
+529c5139-8d3f-4b4f-9b02-84b9e098a0be	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	50	Looking for fresh vegetables, preferably tomatoes or lettuce.	open	2025-11-07 13:55:23.760849+08	2025-11-14 13:55:23.752467+08	resources/images/no-image.jpg
+bfa8d185-4a0d-47bd-a461-34bc35b7b01f	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	25	Looking for fruits	completed	2025-11-07 13:55:23.775793+08	2025-11-14 13:55:23.766581+08	resources/images/no-image.jpg
+9f47f937-b9ff-4825-8533-d3b0266095a3	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	30	Testing status updates	open	2025-11-07 13:55:23.796094+08	2025-11-14 13:55:23.785413+08	resources/images/no-image.jpg
+24d8d1e0-797f-4386-b576-99ab88d8596e	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	b7f2c6d4-1aeb-4f5b-9c2b-222222222222	40	Looking for corn or wheat	open	2025-11-07 13:55:23.822253+08	2025-11-14 13:55:23.812817+08	resources/images/no-image.jpg
+59cbe248-e7fa-4563-9717-55be81ba3154	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	25	Looking for fruits	completed	2025-11-07 14:06:19.689212+08	2025-11-14 14:06:19.684129+08	resources/images/no-image.jpg
+7e91fc20-c0ab-4be1-9e05-ac0a4489e8d3	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	25	Looking for fruits	completed	2025-11-07 14:07:50.067746+08	2025-11-14 14:07:50.062816+08	resources/images/no-image.jpg
+ad114ab0-5fa0-45f0-a805-9bd5d6200f08	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	25	Looking for fruits	completed	2025-11-07 15:25:54.414071+08	2025-11-14 15:25:54.407804+08	resources/images/no-image.jpg
+93997606-0f25-47dd-b722-25171985b81e	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	25	Looking for fruits	completed	2025-11-07 15:28:22.462548+08	2025-11-14 15:28:22.456118+08	resources/images/no-image.jpg
+80832a67-4220-4300-a9f0-dcfa3b4c24ad	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	b7f2c6d4-1aeb-4f5b-9c2b-222222222222	40	Looking for corn or wheat	completed	2025-11-07 15:28:26.506122+08	2025-11-14 15:28:26.500773+08	resources/images/no-image.jpg
+0aebaa77-41cd-4856-8087-03debdaa83e6	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	50	Looking for fresh vegetables, preferably tomatoes or lettuce.	open	2025-11-07 16:26:54.680406+08	\N	resources/images/no-image.jpg
+1893223c-7e6b-4099-af0b-66cdbfdc193a	8c8c73e8-0a16-4d3a-826d-75d50d7a758f	c9d3e8a1-55b2-4f66-a123-333333333333	25	Looking for fruits	completed	2025-11-07 16:26:58.045173+08	\N	resources/images/no-image.jpg
 \.
 
 
@@ -546,6 +668,14 @@ ALTER TABLE ONLY public."Farmer"
 
 
 --
+-- Name: Farmer Farmer_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Farmer"
+    ADD CONSTRAINT "Farmer_user_id_unique" UNIQUE (user_id);
+
+
+--
 -- Name: Item Item_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -575,6 +705,22 @@ ALTER TABLE ONLY public."Order"
 
 ALTER TABLE ONLY public."Review"
     ADD CONSTRAINT "Review_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: TradeBid TradeBid_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TradeBid"
+    ADD CONSTRAINT "TradeBid_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: TradeListing TradeListing_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TradeListing"
+    ADD CONSTRAINT "TradeListing_pkey" PRIMARY KEY (id);
 
 
 --
@@ -706,6 +852,46 @@ ALTER TABLE ONLY public."Review"
 
 
 --
+-- Name: TradeBid TradeBid_bid_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TradeBid"
+    ADD CONSTRAINT "TradeBid_bid_item_id_fkey" FOREIGN KEY (bid_item_id) REFERENCES public."Item"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: TradeBid TradeBid_bidding_farmer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TradeBid"
+    ADD CONSTRAINT "TradeBid_bidding_farmer_id_fkey" FOREIGN KEY (bidding_farmer_id) REFERENCES public."Farmer"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: TradeBid TradeBid_trade_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TradeBid"
+    ADD CONSTRAINT "TradeBid_trade_listing_id_fkey" FOREIGN KEY (trade_listing_id) REFERENCES public."TradeListing"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: TradeListing TradeListing_offered_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TradeListing"
+    ADD CONSTRAINT "TradeListing_offered_item_id_fkey" FOREIGN KEY (offered_item_id) REFERENCES public."Item"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: TradeListing TradeListing_offering_farmer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."TradeListing"
+    ADD CONSTRAINT "TradeListing_offering_farmer_id_fkey" FOREIGN KEY (offering_farmer_id) REFERENCES public."Farmer"(id) ON DELETE CASCADE;
+
+
+--
 -- Name: UserUserDetail UserUserDetail_detail_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -805,5 +991,5 @@ ALTER TABLE ONLY public."Farmer"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 01IqbNGPYt75V4Ug34Kck1bhaR4Q3wOBQDypM4QruMTM3GqvbQwrhBUcJCdrdLh
+\unrestrict h0Nv8YUzTW9jPy7Tc9Y1cnS9HVWPluiBpxyDjauL0WRVf62NkcR6fgLgsVUvBYX
 
