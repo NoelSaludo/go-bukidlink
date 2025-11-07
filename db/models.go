@@ -77,3 +77,26 @@ type CartItem struct {
 	ItemId   string `json:"item_id"`
 	Quantity int    `json:"quantity"`
 }
+
+// TradeListing represents an item offered for trade by a farmer.
+type TradeListing struct {
+	ID                  string     `json:"id"`
+	OfferingFarmerID    string     `json:"offering_farmer_id"`
+	OfferedItemID       string     `json:"offered_item_id"`
+	OfferedItemQuantity float64    `json:"offered_item_quantity"`
+	DesiredItems        string     `json:"desired_items"`
+	Status              string     `json:"status"`
+	CreatedAt           time.Time  `json:"created_at"`
+	ExpiresAt           *time.Time `json:"expires_at,omitempty"`
+}
+
+// TradeBid represents a bid made by a farmer on a TradeListing.
+type TradeBid struct {
+	ID                string    `json:"id"`
+	TradeListingID    string    `json:"trade_listing_id"`
+	BiddingFarmerID   string    `json:"bidding_farmer_id"`
+	BidItemID         string    `json:"bid_item_id"`
+	BidItemQuantity   float64   `json:"bid_item_quantity"`
+	Status            string    `json:"status"`
+	CreatedAt         time.Time `json:"created_at"`
+}
