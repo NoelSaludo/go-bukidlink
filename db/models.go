@@ -93,11 +93,40 @@ type TradeListing struct {
 
 // TradeBid represents a bid made by a farmer on a TradeListing.
 type TradeBid struct {
-	ID                string    `json:"id"`
-	TradeListingID    string    `json:"trade_listing_id"`
-	BiddingFarmerID   string    `json:"bidding_farmer_id"`
-	BidItemID         string    `json:"bid_item_id"`
-	BidItemQuantity   float64   `json:"bid_item_quantity"`
-	Status            string    `json:"status"`
-	CreatedAt         time.Time `json:"created_at"`
+	ID              string    `json:"id"`
+	TradeListingID  string    `json:"trade_listing_id"`
+	BiddingFarmerID string    `json:"bidding_farmer_id"`
+	BidItemID       string    `json:"bid_item_id"`
+	BidItemQuantity float64   `json:"bid_item_quantity"`
+	Status          string    `json:"status"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+// UserBalance stores the current balance for each user.
+type UserBalance struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Balance   float64   `json:"balance"`
+	Currency  string    `json:"currency"`
+	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// Find the PaymentTransaction struct and update these fields to pointers:
+
+type PaymentTransaction struct {
+	ID              string     `json:"id"`
+	UserID          string     `json:"user_id"`
+	OrderID         *string    `json:"order_id,omitempty"` // Changed to pointer (nullable)
+	TransactionType string     `json:"transaction_type"`
+	Amount          float64    `json:"amount"`
+	BalanceBefore   float64    `json:"balance_before"`
+	BalanceAfter    float64    `json:"balance_after"`
+	Status          string     `json:"status"`
+	PaymentMethod   string     `json:"payment_method"`
+	ReferenceNumber *string    `json:"reference_number,omitempty"` // Changed to pointer (nullable)
+	Description     string     `json:"description"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	CompletedAt     *time.Time `json:"completed_at,omitempty"` // Changed to pointer (nullable)
 }

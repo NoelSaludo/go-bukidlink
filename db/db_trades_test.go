@@ -49,7 +49,7 @@ func TestGetTradeBidsByListingID(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotNil(t, bids)
-	assert.Len(t, bids, 2, "Listing should have 2 bids")
+	assert.Len(t, bids, 2, "Listing should have 2 bids, but it has %d", len(bids))
 
 	// Verify bid details
 	for _, bid := range bids {
@@ -82,6 +82,7 @@ func TestCreateAndDeleteTradeListing(t *testing.T) {
 	// Create a new trade listing
 	newListingID := uuid.New().String()
 	expiresAt := time.Now().Add(7 * 24 * time.Hour) // Expires in 7 days
+	img := "resource/images/no-image.jpg"
 	newListing := TradeListing{
 		ID:                  newListingID,
 		OfferingFarmerID:    "8c8c73e8-0a16-4d3a-826d-75d50d7a758f", // JohnDoe farmer
@@ -90,6 +91,7 @@ func TestCreateAndDeleteTradeListing(t *testing.T) {
 		DesiredItems:        "Looking for fresh vegetables, preferably tomatoes or lettuce.",
 		Status:              "open",
 		ExpiresAt:           &expiresAt,
+		ImageURL:            &img,
 	}
 
 	err := CreateTradeListing(newListing)
