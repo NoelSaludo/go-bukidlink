@@ -65,6 +65,19 @@ func setupServer() *gin.Engine {
 
 	bidG.GET("/farmer/:farmer_id", getTradeBidsByFarmerHandler) // Path param: /bid/farmer/:farmer_id
 
+	// Payment routes
+	balanceG := r.Group("/balance")
+	balanceG.GET("/:user_id", getUserBalanceHandler)
+	balanceG.POST("", createUserBalanceHandler)
+
+	paymentG := r.Group("/payment")
+	paymentG.POST("/deposit", processDepositHandler)
+	paymentG.POST("/withdrawal", processWithdrawalHandler)
+	paymentG.POST("/order", processOrderPaymentHandler)
+	paymentG.POST("/refund", processRefundHandler)
+	paymentG.GET("/transaction/:transaction_id", getPaymentTransactionHandler)
+	paymentG.GET("/transactions/:user_id", getUserTransactionsHandler)
+
 	db.SetupDatabase()
 
 	return r
