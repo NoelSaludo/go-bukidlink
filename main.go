@@ -81,6 +81,9 @@ func setupServer() *gin.Engine {
 	// Chat routes
 	setupChatRoutes(r)
 
+	// WebSocket route
+	r.GET("/ws", HandleWebSocket)
+
 	db.SetupDatabase()
 
 	return r
@@ -102,6 +105,9 @@ func getReviewByItemID(c *gin.Context) {
 }
 
 func main() {
+	// Initialize WebSocket hub
+	InitWebSocket()
+
 	r := setupServer()
 
 	r.Run("localhost:8080")
