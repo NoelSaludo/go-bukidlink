@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -378,4 +380,515 @@ func TestRemoveParticipantFromDirectConversation_ShouldFail(t *testing.T) {
 	database := db.GetDB()
 	_, _ = database.Exec(`DELETE FROM "ConversationParticipant" WHERE conversation_id = $1`, conv.ID)
 	_, _ = database.Exec(`DELETE FROM "Conversation" WHERE id = $1`, conv.ID)
+}
+
+// ========== Message Endpoint Tests ==========
+
+func TestSendMessage(t *testing.T) {
+	router := setupServer()
+
+	// First create a conversation
+	convReq := CreateDirectConversationRequest{
+		UserID1: testChatUserJohnDoe,
+		UserID2: testChatUserDanielG,
+	}
+	convBody, _ := json.Marshal(convReq)
+	convResp := httptest.NewRecorder()
+	convReq2, _ := http.NewRequest("POST", "/chat/conversation/direct", bytes.NewBuffer(convBody))
+	convReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(convResp, convReq2)
+
+	var conv db.Conversation
+	json.Unmarshal(convResp.Body.Bytes(), &conv)
+
+	// Send a message
+	msgReq := SendMessageRequest{
+		SenderID:    testChatUserJohnDoe,
+		Content:     "Hello from test!",
+		MessageType: "text",
+	}
+	body, _ := json.Marshal(msgReq)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/chat/conversation/"+conv.ID+"/message", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var msg db.Message
+	err := json.Unmarshal(w.Body.Bytes(), &msg)
+	assert.NoError(t, err)
+	assert.Equal(t, "Hello from test!", msg.Content)
+	assert.Equal(t, testChatUserJohnDoe, msg.SenderID)
+	assert.Equal(t, "text", msg.MessageType)
+
+	// Cleanup
+	db.GetDB().Exec(`DELETE FROM "Message" WHERE id = $1`, msg.ID)
+	db.GetDB().Exec(`DELETE FROM "ConversationParticipant" WHERE conversation_id = $1`, conv.ID)
+	db.GetDB().Exec(`DELETE FROM "Conversation" WHERE id = $1`, conv.ID)
+}
+
+func TestSendMessage_NonParticipant(t *testing.T) {
+	router := setupServer()
+
+	// Create a conversation between JohnDoe and DanielG
+	convReq := CreateDirectConversationRequest{
+		UserID1: testChatUserJohnDoe,
+		UserID2: testChatUserDanielG,
+	}
+	convBody, _ := json.Marshal(convReq)
+	convResp := httptest.NewRecorder()
+	convReq2, _ := http.NewRequest("POST", "/chat/conversation/direct", bytes.NewBuffer(convBody))
+	convReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(convResp, convReq2)
+
+	var conv db.Conversation
+	json.Unmarshal(convResp.Body.Bytes(), &conv)
+
+	// Try to send message as Steward (not a participant)
+	msgReq := SendMessageRequest{
+		SenderID: testChatUserSteward,
+		Content:  "I shouldn't be able to send this",
+	}
+	body, _ := json.Marshal(msgReq)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/chat/conversation/"+conv.ID+"/message", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	// Cleanup
+	db.GetDB().Exec(`DELETE FROM "ConversationParticipant" WHERE conversation_id = $1`, conv.ID)
+	db.GetDB().Exec(`DELETE FROM "Conversation" WHERE id = $1`, conv.ID)
+}
+
+func TestGetConversationMessages(t *testing.T) {
+	router := setupServer()
+
+	// Create a conversation and send some messages
+	convReq := CreateDirectConversationRequest{
+		UserID1: testChatUserJohnDoe,
+		UserID2: testChatUserDanielG,
+	}
+	convBody, _ := json.Marshal(convReq)
+	convResp := httptest.NewRecorder()
+	convReq2, _ := http.NewRequest("POST", "/chat/conversation/direct", bytes.NewBuffer(convBody))
+	convReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(convResp, convReq2)
+
+	var conv db.Conversation
+	json.Unmarshal(convResp.Body.Bytes(), &conv)
+
+	// Send 3 messages
+	messageIDs := make([]string, 0)
+	for i := 1; i <= 3; i++ {
+		msgReq := SendMessageRequest{
+			SenderID: testChatUserJohnDoe,
+			Content:  "Message " + strconv.Itoa(i),
+		}
+		body, _ := json.Marshal(msgReq)
+		msgResp := httptest.NewRecorder()
+		msgReq2, _ := http.NewRequest("POST", "/chat/conversation/"+conv.ID+"/message", bytes.NewBuffer(body))
+		msgReq2.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(msgResp, msgReq2)
+
+		var msg db.Message
+		json.Unmarshal(msgResp.Body.Bytes(), &msg)
+		messageIDs = append(messageIDs, msg.ID)
+	}
+
+	// Get messages
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/chat/conversation/"+conv.ID+"/messages", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var messages []db.MessageWithSender
+	err := json.Unmarshal(w.Body.Bytes(), &messages)
+	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, len(messages), 3)
+
+	// Verify sender information is populated
+	assert.NotEmpty(t, messages[0].SenderUsername)
+
+	// Cleanup
+	for _, msgID := range messageIDs {
+		db.GetDB().Exec(`DELETE FROM "Message" WHERE id = $1`, msgID)
+	}
+	db.GetDB().Exec(`DELETE FROM "ConversationParticipant" WHERE conversation_id = $1`, conv.ID)
+	db.GetDB().Exec(`DELETE FROM "Conversation" WHERE id = $1`, conv.ID)
+}
+
+func TestGetConversationMessages_WithPagination(t *testing.T) {
+	router := setupServer()
+
+	// Create a conversation
+	convReq := CreateDirectConversationRequest{
+		UserID1: testChatUserJohnDoe,
+		UserID2: testChatUserDanielG,
+	}
+	convBody, _ := json.Marshal(convReq)
+	convResp := httptest.NewRecorder()
+	convReq2, _ := http.NewRequest("POST", "/chat/conversation/direct", bytes.NewBuffer(convBody))
+	convReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(convResp, convReq2)
+
+	var conv db.Conversation
+	json.Unmarshal(convResp.Body.Bytes(), &conv)
+
+	// Send 5 messages
+	messageIDs := make([]string, 0)
+	for i := 1; i <= 5; i++ {
+		msgReq := SendMessageRequest{
+			SenderID: testChatUserJohnDoe,
+			Content:  "Message " + strconv.Itoa(i),
+		}
+		body, _ := json.Marshal(msgReq)
+		msgResp := httptest.NewRecorder()
+		msgReq2, _ := http.NewRequest("POST", "/chat/conversation/"+conv.ID+"/message", bytes.NewBuffer(body))
+		msgReq2.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(msgResp, msgReq2)
+
+		var msg db.Message
+		json.Unmarshal(msgResp.Body.Bytes(), &msg)
+		messageIDs = append(messageIDs, msg.ID)
+	}
+
+	// Get first 2 messages
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/chat/conversation/"+conv.ID+"/messages?limit=2&offset=0", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var messages []db.MessageWithSender
+	err := json.Unmarshal(w.Body.Bytes(), &messages)
+	assert.NoError(t, err)
+	assert.LessOrEqual(t, len(messages), 2)
+
+	// Cleanup
+	for _, msgID := range messageIDs {
+		db.GetDB().Exec(`DELETE FROM "Message" WHERE id = $1`, msgID)
+	}
+	db.GetDB().Exec(`DELETE FROM "ConversationParticipant" WHERE conversation_id = $1`, conv.ID)
+	db.GetDB().Exec(`DELETE FROM "Conversation" WHERE id = $1`, conv.ID)
+}
+
+func TestEditMessage(t *testing.T) {
+	router := setupServer()
+
+	// Create conversation and send message
+	convReq := CreateDirectConversationRequest{
+		UserID1: testChatUserJohnDoe,
+		UserID2: testChatUserDanielG,
+	}
+	convBody, _ := json.Marshal(convReq)
+	convResp := httptest.NewRecorder()
+	convReq2, _ := http.NewRequest("POST", "/chat/conversation/direct", bytes.NewBuffer(convBody))
+	convReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(convResp, convReq2)
+
+	var conv db.Conversation
+	json.Unmarshal(convResp.Body.Bytes(), &conv)
+
+	msgReq := SendMessageRequest{
+		SenderID: testChatUserJohnDoe,
+		Content:  "Original message",
+	}
+	msgBody, _ := json.Marshal(msgReq)
+	msgResp := httptest.NewRecorder()
+	msgReq2, _ := http.NewRequest("POST", "/chat/conversation/"+conv.ID+"/message", bytes.NewBuffer(msgBody))
+	msgReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(msgResp, msgReq2)
+
+	var msg db.Message
+	json.Unmarshal(msgResp.Body.Bytes(), &msg)
+
+	// Edit the message
+	editReq := EditMessageRequest{
+		Content: "Edited message",
+	}
+	editBody, _ := json.Marshal(editReq)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("PATCH", "/chat/message/"+msg.ID, bytes.NewBuffer(editBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Verify the edit in database
+	var editedContent string
+	var editedAt *time.Time
+	err := db.GetDB().QueryRow(`SELECT content, edited_at FROM "Message" WHERE id = $1`, msg.ID).Scan(&editedContent, &editedAt)
+	assert.NoError(t, err)
+	assert.Equal(t, "Edited message", editedContent)
+	assert.NotNil(t, editedAt)
+
+	// Cleanup
+	db.GetDB().Exec(`DELETE FROM "Message" WHERE id = $1`, msg.ID)
+	db.GetDB().Exec(`DELETE FROM "ConversationParticipant" WHERE conversation_id = $1`, conv.ID)
+	db.GetDB().Exec(`DELETE FROM "Conversation" WHERE id = $1`, conv.ID)
+}
+
+func TestDeleteMessage(t *testing.T) {
+	router := setupServer()
+
+	// Create conversation and send message
+	convReq := CreateDirectConversationRequest{
+		UserID1: testChatUserJohnDoe,
+		UserID2: testChatUserDanielG,
+	}
+	convBody, _ := json.Marshal(convReq)
+	convResp := httptest.NewRecorder()
+	convReq2, _ := http.NewRequest("POST", "/chat/conversation/direct", bytes.NewBuffer(convBody))
+	convReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(convResp, convReq2)
+
+	var conv db.Conversation
+	json.Unmarshal(convResp.Body.Bytes(), &conv)
+
+	msgReq := SendMessageRequest{
+		SenderID: testChatUserJohnDoe,
+		Content:  "Message to delete",
+	}
+	msgBody, _ := json.Marshal(msgReq)
+	msgResp := httptest.NewRecorder()
+	msgReq2, _ := http.NewRequest("POST", "/chat/conversation/"+conv.ID+"/message", bytes.NewBuffer(msgBody))
+	msgReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(msgResp, msgReq2)
+
+	var msg db.Message
+	json.Unmarshal(msgResp.Body.Bytes(), &msg)
+
+	// Delete the message
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", "/chat/message/"+msg.ID, nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Verify the deletion in database
+	var isDeleted bool
+	var content string
+	err := db.GetDB().QueryRow(`SELECT is_deleted, content FROM "Message" WHERE id = $1`, msg.ID).Scan(&isDeleted, &content)
+	assert.NoError(t, err)
+	assert.True(t, isDeleted)
+	assert.Equal(t, "[Message deleted]", content)
+
+	// Cleanup
+	db.GetDB().Exec(`DELETE FROM "Message" WHERE id = $1`, msg.ID)
+	db.GetDB().Exec(`DELETE FROM "ConversationParticipant" WHERE conversation_id = $1`, conv.ID)
+	db.GetDB().Exec(`DELETE FROM "Conversation" WHERE id = $1`, conv.ID)
+}
+
+// ========== Read Receipt Tests ==========
+
+func TestGetUnreadCount(t *testing.T) {
+	router := setupServer()
+
+	// Create conversation and send messages
+	convReq := CreateDirectConversationRequest{
+		UserID1: testChatUserJohnDoe,
+		UserID2: testChatUserDanielG,
+	}
+	convBody, _ := json.Marshal(convReq)
+	convResp := httptest.NewRecorder()
+	convReq2, _ := http.NewRequest("POST", "/chat/conversation/direct", bytes.NewBuffer(convBody))
+	convReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(convResp, convReq2)
+
+	var conv db.Conversation
+	json.Unmarshal(convResp.Body.Bytes(), &conv)
+
+	// Send 3 messages from JohnDoe
+	messageIDs := make([]string, 0)
+	for i := 1; i <= 3; i++ {
+		msgReq := SendMessageRequest{
+			SenderID: testChatUserJohnDoe,
+			Content:  "Unread message " + strconv.Itoa(i),
+		}
+		body, _ := json.Marshal(msgReq)
+		msgResp := httptest.NewRecorder()
+		msgReq2, _ := http.NewRequest("POST", "/chat/conversation/"+conv.ID+"/message", bytes.NewBuffer(body))
+		msgReq2.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(msgResp, msgReq2)
+
+		var msg db.Message
+		json.Unmarshal(msgResp.Body.Bytes(), &msg)
+		messageIDs = append(messageIDs, msg.ID)
+	}
+
+	// Check unread count for DanielG
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/chat/conversation/"+conv.ID+"/unread?user_id="+testChatUserDanielG, nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]int
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, response["unread_count"], 3)
+
+	// Cleanup
+	for _, msgID := range messageIDs {
+		db.GetDB().Exec(`DELETE FROM "Message" WHERE id = $1`, msgID)
+	}
+	db.GetDB().Exec(`DELETE FROM "ConversationParticipant" WHERE conversation_id = $1`, conv.ID)
+	db.GetDB().Exec(`DELETE FROM "Conversation" WHERE id = $1`, conv.ID)
+}
+
+func TestMarkAsRead(t *testing.T) {
+	router := setupServer()
+
+	// Create conversation and send messages
+	convReq := CreateDirectConversationRequest{
+		UserID1: testChatUserJohnDoe,
+		UserID2: testChatUserDanielG,
+	}
+	convBody, _ := json.Marshal(convReq)
+	convResp := httptest.NewRecorder()
+	convReq2, _ := http.NewRequest("POST", "/chat/conversation/direct", bytes.NewBuffer(convBody))
+	convReq2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(convResp, convReq2)
+
+	var conv db.Conversation
+	json.Unmarshal(convResp.Body.Bytes(), &conv)
+
+	// Send messages
+	messageIDs := make([]string, 0)
+	for i := 1; i <= 2; i++ {
+		msgReq := SendMessageRequest{
+			SenderID: testChatUserJohnDoe,
+			Content:  "Message " + strconv.Itoa(i),
+		}
+		body, _ := json.Marshal(msgReq)
+		msgResp := httptest.NewRecorder()
+		msgReq2, _ := http.NewRequest("POST", "/chat/conversation/"+conv.ID+"/message", bytes.NewBuffer(body))
+		msgReq2.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(msgResp, msgReq2)
+
+		var msg db.Message
+		json.Unmarshal(msgResp.Body.Bytes(), &msg)
+		messageIDs = append(messageIDs, msg.ID)
+	}
+
+	// Mark as read
+	readReq := MarkAsReadRequest{
+		UserID: testChatUserDanielG,
+	}
+	readBody, _ := json.Marshal(readReq)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/chat/conversation/"+conv.ID+"/read", bytes.NewBuffer(readBody))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Verify last_read_at was updated
+	var lastReadAt *time.Time
+	err := db.GetDB().QueryRow(`SELECT last_read_at FROM "ConversationParticipant" WHERE conversation_id = $1 AND user_id = $2`, conv.ID, testChatUserDanielG).Scan(&lastReadAt)
+	assert.NoError(t, err)
+	assert.NotNil(t, lastReadAt)
+
+	// Cleanup
+	for _, msgID := range messageIDs {
+		db.GetDB().Exec(`DELETE FROM "Message" WHERE id = $1`, msgID)
+	}
+	db.GetDB().Exec(`DELETE FROM "ConversationParticipant" WHERE conversation_id = $1`, conv.ID)
+	db.GetDB().Exec(`DELETE FROM "Conversation" WHERE id = $1`, conv.ID)
+}
+
+// ========== User Presence Tests ==========
+
+func TestUpdateUserPresence(t *testing.T) {
+	router := setupServer()
+
+	presenceReq := struct {
+		Status string `json:"status"`
+	}{
+		Status: "online",
+	}
+
+	body, _ := json.Marshal(presenceReq)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/chat/user/"+testChatUserJohnDoe+"/presence", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Verify in database
+	var status string
+	err := db.GetDB().QueryRow(`SELECT status FROM "UserPresence" WHERE user_id = $1`, testChatUserJohnDoe).Scan(&status)
+	assert.NoError(t, err)
+	assert.Equal(t, "online", status)
+}
+
+func TestUpdateUserPresence_InvalidStatus(t *testing.T) {
+	router := setupServer()
+
+	presenceReq := struct {
+		Status string `json:"status"`
+	}{
+		Status: "invisible", // Invalid status
+	}
+
+	body, _ := json.Marshal(presenceReq)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/chat/user/"+testChatUserJohnDoe+"/presence", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetUserPresence(t *testing.T) {
+	router := setupServer()
+
+	// First set presence
+	db.UpsertUserPresence(testChatUserJohnDoe, "online")
+
+	// Get presence
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/chat/user/"+testChatUserJohnDoe+"/presence", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var presence db.UserPresence
+	err := json.Unmarshal(w.Body.Bytes(), &presence)
+	assert.NoError(t, err)
+	assert.Equal(t, testChatUserJohnDoe, presence.UserID)
+	assert.Equal(t, "online", presence.Status)
+}
+
+func TestGetMultipleUserPresence(t *testing.T) {
+	router := setupServer()
+
+	// Set presence for multiple users
+	db.UpsertUserPresence(testChatUserJohnDoe, "online")
+	db.UpsertUserPresence(testChatUserDanielG, "away")
+	db.UpsertUserPresence(testChatUserSteward, "offline")
+
+	presenceReq := struct {
+		UserIDs []string `json:"user_ids"`
+	}{
+		UserIDs: []string{testChatUserJohnDoe, testChatUserDanielG, testChatUserSteward},
+	}
+
+	body, _ := json.Marshal(presenceReq)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/chat/presence/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var presences []db.UserPresence
+	err := json.Unmarshal(w.Body.Bytes(), &presences)
+	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, len(presences), 3)
 }
