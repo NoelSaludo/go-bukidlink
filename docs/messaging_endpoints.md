@@ -1,6 +1,331 @@
 # Messaging API Endpoints
 
-Complete REST API documentation for the real-time messaging feature in BukidLink.
+Complete REST API and WebSocket documentation for the real-time messaging feature in BukidLink.
+
+## Base URL
+- REST API: All messaging endpoints are prefixed with `/chat`
+- WebSocket: `ws://localhost:8080/ws?user_id=<uuid>`
+
+---
+
+## WebSocket Connection
+
+### Connect to WebSocket
+Establish a WebSocket connection for real-time messaging.
+
+**Endpoint:** `GET /ws?user_id=<uuid>`
+
+**Query Parameters:**
+- `user_id` (required) - The UUID of the user connecting
+
+**Connection Example (JavaScript):**
+```javascript
+const ws = new WebSocket('ws://localhost:8080/ws?user_id=YOUR_USER_ID');
+
+ws.onopen = () => {
+  console.log('Connected to WebSocket');
+};
+
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  console.log('Received:', message);
+};
+```
+
+**Notes:**
+- User presence automatically set to "online" on connect
+- User presence automatically set to "offline" on disconnect (if no other connections)
+- Supports multiple simultaneous connections per user
+- Connection kept alive with ping/pong (54-second intervals)
+
+---
+
+## WebSocket Message Format
+
+All WebSocket messages follow this envelope structure:
+
+```json
+{
+  "type": "message_type",
+  "payload": { /* type-specific data */ }
+}
+```
+
+### Message Types
+
+#### Client → Server:
+- `message` - Send a new message
+- `typing` - Start typing indicator
+- `stop_typing` - Stop typing indicator
+- `presence` - Update presence status
+- `read` - Mark messages as read
+- `message_edit` - Edit a message
+- `message_delete` - Delete a message
+- `pong` - Respond to server ping
+
+#### Server → Client:
+- `message` - New message received
+- `typing` - User started typing
+- `stop_typing` - User stopped typing
+- `presence` - User presence updated
+- `read` - Messages marked as read
+- `message_edit` - Message was edited
+- `message_delete` - Message was deleted
+- `error` - Error occurred
+- `ping` - Keep-alive ping
+
+---
+
+## WebSocket Messages
+
+### 1. Send Message
+
+**Client sends:**
+```json
+{
+  "type": "message",
+  "payload": {
+    "conversation_id": "uuid",
+    "sender_id": "uuid",
+    "content": "Hello, world!",
+    "message_type": "text",
+    "attachment_url": null
+  }
+}
+```
+
+**Server broadcasts to participants:**
+```json
+{
+  "type": "message",
+  "payload": {
+    "conversation_id": "uuid",
+    "message_id": "uuid",
+    "sender_id": "uuid",
+    "content": "Hello, world!",
+    "message_type": "text",
+    "attachment_url": null,
+    "created_at": "2025-11-10T10:15:00Z"
+  }
+}
+```
+
+**Notes:**
+- Message saved to database before broadcast
+- All conversation participants receive the message
+- Sender receives their own message (for multi-device sync)
+
+---
+
+### 2. Typing Indicator
+
+**Client sends:**
+```json
+{
+  "type": "typing",
+  "payload": {
+    "conversation_id": "uuid",
+    "user_id": "uuid"
+  }
+}
+```
+
+**Server broadcasts to other participants:**
+```json
+{
+  "type": "typing",
+  "payload": {
+    "conversation_id": "uuid",
+    "user_id": "uuid",
+    "username": null
+  }
+}
+```
+
+**Notes:**
+- Sender excluded from broadcast
+- Not persisted to database
+- Client should send `stop_typing` after 3-5 seconds of inactivity
+
+---
+
+### 3. Stop Typing
+
+**Client sends:**
+```json
+{
+  "type": "stop_typing",
+  "payload": {
+    "conversation_id": "uuid",
+    "user_id": "uuid"
+  }
+}
+```
+
+**Server broadcasts to other participants:**
+```json
+{
+  "type": "stop_typing",
+  "payload": {
+    "conversation_id": "uuid",
+    "user_id": "uuid"
+  }
+}
+```
+
+---
+
+### 4. Presence Update
+
+**Client sends:**
+```json
+{
+  "type": "presence",
+  "payload": {
+    "user_id": "uuid",
+    "status": "away"
+  }
+}
+```
+
+**Server broadcasts to all connected users:**
+```json
+{
+  "type": "presence",
+  "payload": {
+    "user_id": "uuid",
+    "status": "away"
+  }
+}
+```
+
+**Valid status values:**
+- `online`
+- `offline`
+- `away`
+
+**Notes:**
+- Broadcast to ALL connected users, not just conversation participants
+- Persisted to database
+- Automatically set on connect/disconnect
+
+---
+
+### 5. Read Receipt
+
+**Client sends:**
+```json
+{
+  "type": "read",
+  "payload": {
+    "conversation_id": "uuid",
+    "user_id": "uuid"
+  }
+}
+```
+
+**Server broadcasts to other participants:**
+```json
+{
+  "type": "read",
+  "payload": {
+    "conversation_id": "uuid",
+    "user_id": "uuid",
+    "timestamp": "2025-11-10T10:20:00Z"
+  }
+}
+```
+
+**Notes:**
+- Updates `last_read_at` in database
+- Sender excluded from broadcast
+
+---
+
+### 6. Edit Message
+
+**Client sends:**
+```json
+{
+  "type": "message_edit",
+  "payload": {
+    "conversation_id": "uuid",
+    "message_id": "uuid",
+    "content": "Updated message content"
+  }
+}
+```
+
+**Server broadcasts to all participants:**
+```json
+{
+  "type": "message_edit",
+  "payload": {
+    "conversation_id": "uuid",
+    "message_id": "uuid",
+    "content": "Updated message content"
+  }
+}
+```
+
+**Notes:**
+- Updates message in database
+- Sets `edited_at` timestamp
+
+---
+
+### 7. Delete Message
+
+**Client sends:**
+```json
+{
+  "type": "message_delete",
+  "payload": {
+    "conversation_id": "uuid",
+    "message_id": "uuid"
+  }
+}
+```
+
+**Server broadcasts to all participants:**
+```json
+{
+  "type": "message_delete",
+  "payload": {
+    "conversation_id": "uuid",
+    "message_id": "uuid"
+  }
+}
+```
+
+**Notes:**
+- Soft delete in database
+- Content replaced with "[Message deleted]"
+
+---
+
+### 8. Error Message
+
+**Server sends:**
+```json
+{
+  "type": "error",
+  "payload": {
+    "message": "Error description",
+    "code": "ERROR_CODE"
+  }
+}
+```
+
+**Common errors:**
+- "Invalid message format"
+- "Sender ID does not match authenticated user"
+- "Cannot update another user's presence"
+- "Failed to save message"
+
+---
+
+## REST API Endpoints
 
 ## Base URL
 All messaging endpoints are prefixed with `/chat`
@@ -464,15 +789,167 @@ go test -v -run "Test.*Presence"
 
 ---
 
+## WebSocket Implementation Details
+
+### Architecture
+
+**Hub Pattern:**
+- Central `Hub` manages all WebSocket connections
+- Clients registered/unregistered on connect/disconnect
+- Broadcast channel for distributing messages to relevant clients
+
+**Client Structure:**
+- Each WebSocket connection represented by a `Client` struct
+- Buffered send channel (256 messages) prevents blocking
+- Separate goroutines for reading and writing (ReadPump/WritePump)
+
+**Concurrency:**
+- Thread-safe operations using `sync.RWMutex`
+- Multiple connections per user supported
+- Non-blocking sends with fallback disconnect
+
+### Connection Lifecycle
+
+1. **Connect:**
+   - HTTP upgraded to WebSocket
+   - Client registered in hub
+   - Presence set to "online"
+   - Presence broadcast to all users
+
+2. **Active:**
+   - Ping/pong keep-alive (54s interval)
+   - Read timeout: 60s
+   - Write timeout: 10s
+   - Handles reconnection for same user
+
+3. **Disconnect:**
+   - Client unregistered from hub
+   - If last connection for user, set presence to "offline"
+   - Broadcast offline status
+
+### Message Broadcasting
+
+**Conversation-scoped:**
+```go
+hub.Broadcast <- &BroadcastMessage{
+    ConversationID: "uuid",
+    ExcludeUserID:  "sender-uuid",  // Optional
+    Data:           messageBytes,
+}
+```
+
+**User-scoped:**
+```go
+hub.Broadcast <- &BroadcastMessage{
+    UserIDs: []string{"uuid1", "uuid2"},
+    Data:    messageBytes,
+}
+```
+
+**Global (all users):**
+```go
+// Used for presence updates
+hub.broadcastPresence(userID, "online")
+```
+
+### Testing
+
+**Run WebSocket tests:**
+```bash
+go test -v -run "TestWebSocket"
+```
+
+**Test HTML client:**
+1. Start server: `go run .`
+2. Open `websocket_client.html` in browser
+3. Enter user ID and connect
+4. Test messaging, typing indicators, presence
+
+**Manual testing with wscat:**
+```bash
+npm install -g wscat
+wscat -c "ws://localhost:8080/ws?user_id=YOUR_USER_ID"
+
+# Send a message
+{"type":"message","payload":{"conversation_id":"CONV_ID","sender_id":"USER_ID","content":"Hello"}}
+```
+
+---
+
+## Security Considerations
+
+### Current Implementation (Development)
+- WebSocket accepts connections from any origin
+- User ID passed as query parameter (not secure)
+- No authentication/authorization checks
+
+### Production Requirements
+
+1. **Authentication:**
+   ```go
+   // Use JWT token instead of user_id query param
+   token := c.Query("token")
+   userID, err := validateJWT(token)
+   ```
+
+2. **Origin Validation:**
+   ```go
+   var upgrader = websocket.Upgrader{
+       CheckOrigin: func(r *http.Request) bool {
+           origin := r.Header.Get("Origin")
+           return origin == "https://yourdomain.com"
+       },
+   }
+   ```
+
+3. **Message Validation:**
+   - Verify user is participant before sending to conversation
+   - Rate limiting to prevent spam
+   - Content validation and sanitization
+
+4. **TLS/WSS:**
+   - Use `wss://` instead of `ws://` in production
+   - Configure HTTPS on server
+
+---
+
+## Performance Optimization
+
+### Current Configuration
+- Send buffer: 256 messages per client
+- Broadcast channel: 256 messages
+- Ping interval: 54 seconds
+- Read timeout: 60 seconds
+- Write timeout: 10 seconds
+
+### Scaling Considerations
+
+**Horizontal Scaling:**
+- Use Redis Pub/Sub for cross-server message distribution
+- Shared session store for user presence
+- Load balancer with sticky sessions
+
+**Message Queuing:**
+- Add message queue (RabbitMQ/Redis) for offline delivery
+- Store undelivered messages for offline users
+- Batch delivery on reconnect
+
+**Database Optimization:**
+- Index on `conversation_id` and `sender_id`
+- Partition large message tables by date
+- Cache active conversation participants
+
+---
+
 ## Next Steps for Real-Time Messaging
 
 To complete the real-time messaging feature, implement:
 
-1. **WebSocket Layer**
-   - Socket.IO or native WebSocket connection handler
-   - Real-time message delivery
-   - Presence broadcasting
-   - Typing indicators
+1. **~~WebSocket Layer~~** ✅ **COMPLETED**
+   - ~~Socket connection handler~~
+   - ~~Real-time message delivery~~
+   - ~~Presence broadcasting~~
+   - ~~Typing indicators~~
 
 2. **File Upload**
    - Image upload endpoint
