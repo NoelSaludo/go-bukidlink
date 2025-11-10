@@ -276,4 +276,9 @@ func TestCartWorkflow(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, cart.Items, 1)
 	assert.Equal(t, bananaID, cart.Items[0].ItemId)
+
+	// Cleanup: Remove remaining items from cart
+	for _, item := range cart.Items {
+		_ = RemoveItemFromCart(item.Id)
+	}
 }
