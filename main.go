@@ -78,6 +78,9 @@ func setupServer() *gin.Engine {
 	paymentG.GET("/transaction/:transaction_id", getPaymentTransactionHandler)
 	paymentG.GET("/transactions/:user_id", getUserTransactionsHandler)
 
+	// Chat routes
+	setupChatRoutes(r)
+
 	db.SetupDatabase()
 
 	return r

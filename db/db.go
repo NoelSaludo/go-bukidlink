@@ -102,3 +102,7 @@ func rollbackAndReturn(tx *sql.Tx, origErr error) error {
 	}
 	return origErr
 }
+
+func GetDB() *sql.DB {
+	return db
+}
