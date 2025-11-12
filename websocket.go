@@ -621,6 +621,9 @@ func HandleWebSocket(c *gin.Context) {
 		return
 	}
 
+	// Log connection attempt with client info
+	log.Printf("WebSocket connection attempt from %s (user_id: %s)", c.ClientIP(), userID)
+
 	// Upgrade HTTP connection to WebSocket
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {

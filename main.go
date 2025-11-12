@@ -3,14 +3,32 @@ package main
 import (
 	"bukidlink/db"
 	"net/http"
+	"net/url"
 
+	
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func setupServer() *gin.Engine {
 
 	r := gin.Default()
 
+	r.Use(cors.New(cors.Config{
+		AllowOriginFunc: func(origin string) bool {
+			u, err := url.Parse(origin)
+			if err != nil {
+				return false
+			}
+			host := u.Hostname()
+			return host == "localhost" || host == "127.0.0.1"
+		},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: false, // set true only if you use cookies/auth headers
+	}))
 	r.GET("/ping", func(c *gin.Context) {
 		// Return JSON response
 		c.JSON(http.StatusOK, gin.H{
@@ -105,6 +123,12 @@ func getReviewByItemID(c *gin.Context) {
 }
 
 func main() {
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		panic("Error loading .env file")
+	}
+
 	// Initialize WebSocket hub
 	InitWebSocket()
 

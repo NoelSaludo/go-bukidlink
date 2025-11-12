@@ -154,7 +154,9 @@ func getUserHandler(c *gin.Context) {
 				})
 				return
 			}
-			// if fetch failed or image too large, fallthrough and return user only
+			c.JSON(http.StatusInternalServerError,
+				gin.H{"error": "failed to read profile image"})
+			return
 		}
 
 		// Default: return user only
@@ -162,5 +164,5 @@ func getUserHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 }
