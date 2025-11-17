@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+
 	"github.com/google/uuid"
 )
 
@@ -75,5 +76,18 @@ func AddItemToCart(cartId string, itemId string, quantity int) error {
 func RemoveItemFromCart(cartItemId string) error {
 	query := `DELETE FROM "CartItem" WHERE id = $1`
 	_, err := db.Exec(query, cartItemId)
+	return err
+}
+
+// UpdateCartItemQuantity updates the quantity for a cart item. If quantity <= 0,
+// the cart item is removed.
+func UpdateCartItemQuantity(cartItemId string, quantity int) error {
+	if quantity <= 0 {
+		// remove the item
+		return RemoveItemFromCart(cartItemId)
+	}
+
+	query := `UPDATE "CartItem" SET quantity = $1 WHERE id = $2`
+	_, err := db.Exec(query, quantity, cartItemId)
 	return err
 }

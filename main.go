@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 
-	
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -58,6 +57,7 @@ func setupServer() *gin.Engine {
 	cartG := r.Group("/cart")
 	cartG.GET("/:user_id", getCartHandler)
 	cartG.POST("/item", addCartItemHandler)
+	cartG.PATCH("/item", updateCartItemHandler)
 	cartG.DELETE("/item/:cart_item_id", removeCartItemHandler)
 
 	userPostG := r.Group("/userpost")

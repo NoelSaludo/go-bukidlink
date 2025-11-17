@@ -358,6 +358,27 @@ curl -X POST http://localhost:8080/cart/item \
 
 **Response**: `{"status":"item added to cart"}`
 
+### PATCH /cart/item
+**Purpose**: Update the quantity of an existing cart item. If the new `quantity` is less than or equal to 0, the cart item is removed.
+
+**Request Body**: JSON object matching `UpdateCartItemRequest`:
+- `cart_item_id` (string) — CartItem UUID (not the Item ID)
+- `quantity` (int) — New quantity. If <= 0, the item is deleted.
+
+**Response**: `200 OK` with `{"status":"quantity updated"}`, `400 Bad Request` for malformed JSON or missing `cart_item_id`, or `500 Internal Server Error` on DB errors.
+
+**Example**:
+```bash
+curl -X PATCH http://localhost:8080/cart/item \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cart_item_id": "41111111-1111-1111-1111-111111111111",
+    "quantity": 2
+  }'
+```
+
+**Note**: The server validates `cart_item_id` is present; see `cartroutes.go` -> `UpdateCartItemRequest`. The DB function `UpdateCartItemQuantity` will remove the cart item when `quantity <= 0`.
+
 ### DELETE /cart/item/:cart_item_id
 **Purpose**: Remove a specific item from a cart.
 
